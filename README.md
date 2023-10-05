@@ -511,37 +511,18 @@ mtcars %>%
   aes(wt, mpg) + 
   geom_point() +
   geom_smooth() + 
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt)
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
-
-``` r
-
-
-mtcars %>%
-  ggplot() +
-  aes(x = wt, y = mpg) +
-  geom_point() +
-  geom_smooth() +
-  stat_smooth(geom = "segment",
-              color = "darkred",
+  stat_smooth(geom = "point",  color = "blue", 
+              xseq = mtcars$wt) +
+  stat_smooth(geom = "segment", color = "darkred",
               xseq = mtcars$wt,
               xend = mtcars$wt,
               yend = mtcars$mpg
   )
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+<img src="README_files/figure-gfm/unnamed-chunk-9-1.png" width="45%" />
 
 ``` r
-
 mtcars %>% 
   ggplot() +
   aes(wt, mpg) + 
@@ -556,4 +537,4 @@ mtcars %>%
               formula = y ~1)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->

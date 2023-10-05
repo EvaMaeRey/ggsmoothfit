@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 library(tidyverse, warn.conflicts = F)
+ggplot2::theme_set(theme_gray(base_size = 18))
 ```
 
 # ggsmoothfit 
@@ -363,30 +364,23 @@ Specify xseq... Almost surely new to you (and probably more interesting to stats
 
 xseq is not advertised, but possibly of interest.. https://ggplot2.tidyverse.org/reference/geom_smooth.html
 
-```{r}
+```{r, warning= F, message=F}
 # fit where the support is in the data... 
 mtcars %>% 
   ggplot() +
   aes(wt, mpg) + 
   geom_point() +
   geom_smooth() + 
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt)
-
-
-mtcars %>%
-  ggplot() +
-  aes(x = wt, y = mpg) +
-  geom_point() +
-  geom_smooth() +
-  stat_smooth(geom = "segment",
-              color = "darkred",
+  stat_smooth(geom = "point",  color = "blue", # fitted values
+              xseq = mtcars$wt) +
+  stat_smooth(geom = "segment", color = "darkred", # residuals
               xseq = mtcars$wt,
               xend = mtcars$wt,
-              yend = mtcars$mpg
-  )
+              yend = mtcars$mpg)
+```
 
+
+```{r}
 mtcars %>% 
   ggplot() +
   aes(wt, mpg) + 
