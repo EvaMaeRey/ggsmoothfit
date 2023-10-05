@@ -1,18 +1,7 @@
 
-  - [ggsmoothfit - name is subject to
-    change](#ggsmoothfit---name-is-subject-to-change)
-  - [Status quo: w/o ggsmoothfit](#status-quo-wo-ggsmoothfit)
-      - [Option 1. describe and move
-        on…](#option-1-describe-and-move-on)
-      - [Option 2: precalculate and
-        plot](#option-2-precalculate-and-plot)
-      - [Option 3: little known xseq argument and geom =
-        “point”](#option-3-little-known-xseq-argument-and-geom--point)
-  - [Proposal 00: Can we make this available in a bit ‘smoother’
-    way?](#proposal-00-can-we-make-this-available-in-a-bit-smoother-way)
-      - [Target code](#target-code)
-      - [And also explicitly visualize error (residuals as
-        segments)](#and-also-explicitly-visualize-error-residuals-as-segments)
+  - [ggsmoothfit](#ggsmoothfit)
+  - [Curious about implementation? Details about building these
+    functions](#curious-about-implementation-details-about-building-these-functions)
   - [Step 0. Examine ggplot2::StatSmooth$compute\_group, and a dataframe
     that it
     returns](#step-0-examine-ggplot2statsmoothcompute_group-and-a-dataframe-that-it-returns)
@@ -30,134 +19,45 @@
   - [Step 4.b Create geom alliases and wrappers, try it out, and enjoy\!
     Wait not working, how do I need to do
     this?](#step-4b-create-geom-alliases-and-wrappers-try-it-out-and-enjoy-wait-not-working-how-do-i-need-to-do-this)
-  - [Make it a Package: Chunks to R dir and tests
-    dir](#make-it-a-package-chunks-to-r-dir-and-tests-dir)
-  - [History…](#history)
-  - [Readme chunk contents](#readme-chunk-contents)
+  - [Don’t want to use ggsmoothfit? Here are some ways to get it done
+    with base
+    ggplot2\!](#dont-want-to-use-ggsmoothfit-here-are-some-ways-to-get-it-done-with-base-ggplot2)
+      - [Option 1. Verbal description and move
+        on…](#option-1-verbal-description-and-move-on)
+      - [Option 2: precalculate and
+        plot](#option-2-precalculate-and-plot)
+      - [Option 3: little known xseq argument and geom =
+        “point”](#option-3-little-known-xseq-argument-and-geom--point)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# ggsmoothfit - name is subject to change
+# ggsmoothfit
 
 <!-- badges: start -->
 
 <!-- badges: end -->
 
-# Status quo: w/o ggsmoothfit
-
-stats instructors gotta talk about residuals and the model predictions
-for model observations
-
-Status quo options for doing that in ggplot2
-
-## Option 1. describe and move on…
-
-“image a line that drops down from the observation to the model line”
-use vanilla geom\_smooth
+{ggsmoothfit} lets you visualize model fitted values and residuals
+easily\!
 
 ``` r
 library(tidyverse, warn.conflicts = F)
-#> ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-#> ✔ dplyr     1.1.0     ✔ readr     2.1.4
-#> ✔ forcats   1.0.0     ✔ stringr   1.5.0
-#> ✔ ggplot2   3.4.1     ✔ tibble    3.2.0
-#> ✔ lubridate 1.9.2     ✔ tidyr     1.3.0
-#> ✔ purrr     1.0.1     
-#> ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-#> ✖ dplyr::filter() masks stats::filter()
-#> ✖ dplyr::lag()    masks stats::lag()
-#> ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
-
+library(ggsmoothfit)
 mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() + 
-  geom_smooth()
+  ggplot() + 
+  aes(wt, mpg) +
+  geom_point() +
+  geom_smooth() +
+  ggsmoothfit::stat_fit(color = "blue") + # alias as geom_smooth_fit()
+  ggsmoothfit::stat_fit(geom = "segment") # in future, wrap as geom_smooth_error()
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/stat-smooth-1.png)<!-- -->
-
-## Option 2: precalculate and plot
-
-\[stack overflow example goes here.\]
-
-## Option 3: little known xseq argument and geom = “point”
-
-First a bit of under-the-hood thinking about geom\_smooth/stat\_smooth.
-
-``` r
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_smooth(n = 12) +
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              n = 12)
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
-Also, you can specify xseq… Almost surely new to you (and probably more
-interesting to stats instructors): predicting at observed values of x
-
-xseq is not advertised, but possibly of interest..
-<https://ggplot2.tidyverse.org/reference/geom_smooth.html>
-
-``` r
-# fit where the support is in the data... 
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() +
-  geom_smooth() + 
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt)
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
-
-``` r
-
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() +
-  geom_smooth(formula = y ~ 1, 
-              method = lm, 
-              se = F) +
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt, 
-              method = lm, 
-              formula = y ~1)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
-
-# Proposal 00: Can we make this available in a bit ‘smoother’ way?
-
-## Target code
-
-``` r
-library(ggsmoothfit)
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) + 
-  geom_smooth_fit()
-```
-
-## And also explicitly visualize error (residuals as segments)
-
-``` r
-last_plot() + 
-  geom_smooth_error() 
-```
+# Curious about implementation? Details about building these functions
 
 # Step 0. Examine ggplot2::StatSmooth$compute\_group, and a dataframe that it returns
 
@@ -260,7 +160,7 @@ compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL
                        xseq = data$x, 
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    mutate(xend = data$x,
+    dplyr::mutate(xend = data$x,
            yend = data$y
            )
 }
@@ -288,7 +188,7 @@ compute_group_smooth_sq_error <- function(data, scales, method = NULL, formula =
                        se = FALSE, n= n, span = span, fullrange = fullrange,
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    mutate(ymin = y,
+    dplyr::mutate(ymin = y,
            xmin = x,
            ymax = yend,
            xmax = x + (ymax - ymin))
@@ -355,6 +255,30 @@ StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
 # Step 3. Pass to stat\_\* functions
 
 ``` r
+#' Title
+#'
+#' @param mapping 
+#' @param data 
+#' @param geom 
+#' @param position 
+#' @param ... 
+#' @param method 
+#' @param formula 
+#' @param se 
+#' @param n 
+#' @param span 
+#' @param fullrange 
+#' @param level 
+#' @param method.args 
+#' @param na.rm 
+#' @param orientation 
+#' @param show.legend 
+#' @param inherit.aes 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 stat_fit <- function(mapping = NULL, data = NULL,
             geom = "point", position = "identity",
             ...,
@@ -495,7 +419,7 @@ mtcars %>%
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 # Contrast to an empty model…
 
@@ -515,7 +439,7 @@ mtcars %>%
   coord_equal()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 # Step 4.b Create geom alliases and wrappers, try it out, and enjoy\! Wait not working, how do I need to do this?
 
@@ -533,32 +457,103 @@ mtcars %>%
   geom_smooth_residual(geom = "segment")
 ```
 
-# Make it a Package: Chunks to R dir and tests dir
+# Don’t want to use ggsmoothfit? Here are some ways to get it done with base ggplot2\!
+
+## Option 1. Verbal description and move on…
+
+“image a line that drops down from the observation to the model line”
+use vanilla geom\_smooth
 
 ``` r
-readme2pkg::chunk_to_r(c("compute_group_smooth_fit", 
-                         "compute_group_smooth_sq_error",
-                         "ggproto_objects",
-                         "stat_fit", 
-                         "stat_errorsq"))
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() + 
+  geom_smooth()
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-# History…
+![](README_files/figure-gfm/stat-smooth-1.png)<!-- -->
 
-  - model by model ggplot2 extension… ggols and ggxmean
+## Option 2: precalculate and plot
 
-# Readme chunk contents
+\[stack overflow example goes here.\]
+
+## Option 3: little known xseq argument and geom = “point”
+
+First a bit of under-the-hood thinking about geom\_smooth/stat\_smooth.
 
 ``` r
-knitr::knit_code$get() |> names()
-#>  [1] "unnamed-chunk-1"               "stat-smooth"                  
-#>  [3] "unnamed-chunk-2"               "unnamed-chunk-3"              
-#>  [5] "unnamed-chunk-4"               "unnamed-chunk-5"              
-#>  [7] "unnamed-chunk-6"               "compute_group_smooth_fit"     
-#>  [9] "compute_group_smooth_sq_error" "unnamed-chunk-7"              
-#> [11] "ggproto_objects"               "stat_fit"                     
-#> [13] "stat_errorsq"                  "test"                         
-#> [15] "squaring"                      "unnamed-chunk-8"              
-#> [17] "unnamed-chunk-9"               "unnamed-chunk-10"             
-#> [19] "unnamed-chunk-11"              "unnamed-chunk-12"
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_smooth(n = 12) +
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              n = 12)
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
+
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+
+Specify xseq… Almost surely new to you (and probably more interesting to
+stats instructors): predicting at observed values of x.. Warning, this
+is off label..
+
+xseq is not advertised, but possibly of interest..
+<https://ggplot2.tidyverse.org/reference/geom_smooth.html>
+
+``` r
+# fit where the support is in the data... 
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() +
+  geom_smooth() + 
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              xseq = mtcars$wt)
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+``` r
+
+
+mtcars %>%
+  ggplot() +
+  aes(x = wt, y = mpg) +
+  geom_point() +
+  geom_smooth() +
+  stat_smooth(geom = "segment",
+              color = "darkred",
+              xseq = mtcars$wt,
+              xend = mtcars$wt,
+              yend = mtcars$mpg
+  )
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+
+``` r
+
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() +
+  geom_smooth(formula = y ~ 1, 
+              method = lm, 
+              se = F) +
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              xseq = mtcars$wt, 
+              method = lm, 
+              formula = y ~1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->

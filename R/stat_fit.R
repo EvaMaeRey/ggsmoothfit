@@ -1,3 +1,27 @@
+#' Title
+#'
+#' @param mapping 
+#' @param data 
+#' @param geom 
+#' @param position 
+#' @param ... 
+#' @param method 
+#' @param formula 
+#' @param se 
+#' @param n 
+#' @param span 
+#' @param fullrange 
+#' @param level 
+#' @param method.args 
+#' @param na.rm 
+#' @param orientation 
+#' @param show.legend 
+#' @param inherit.aes 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 stat_fit <- function(mapping = NULL, data = NULL,
             geom = "point", position = "identity",
             ...,

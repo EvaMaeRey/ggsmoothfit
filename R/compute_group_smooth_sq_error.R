@@ -8,7 +8,7 @@ compute_group_smooth_sq_error <- function(data, scales, method = NULL, formula =
                        se = FALSE, n= n, span = span, fullrange = fullrange,
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    mutate(ymin = y,
+    dplyr::mutate(ymin = y,
            xmin = x,
            ymax = yend,
            xmax = x + (ymax - ymin))

@@ -9,7 +9,7 @@ compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL
                        xseq = data$x, 
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    mutate(xend = data$x,
+    dplyr::mutate(xend = data$x,
            yend = data$y
            )
 }

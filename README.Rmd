@@ -11,101 +11,30 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+library(tidyverse, warn.conflicts = F)
 ```
 
-# ggsmoothfit - name is subject to change
+# ggsmoothfit 
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-# Status quo: w/o ggsmoothfit 
+{ggsmoothfit} lets you visualize model fitted values and residuals easily!
 
-stats instructors gotta talk about residuals and the model predictions for model observations
-
-Status quo options for doing that in ggplot2
-
-## Option 1. describe and move on...
-
-"image a line that drops down from the observation to the model line" use vanilla geom_smooth
-
-```{r stat-smooth}
+```{r, eval = T}
 library(tidyverse, warn.conflicts = F)
-
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() + 
-  geom_smooth()
-```
-
-
-## Option 2: precalculate and plot 
-
-[stack overflow example goes here.]
-
-
-## Option 3: little known xseq argument and geom = "point"
-
-First a bit of under-the-hood thinking about geom_smooth/stat_smooth.
-
-```{r}
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_smooth(n = 12) +
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              n = 12)
-```
-
-Also, you can specify xseq... Almost surely new to you (and probably more interesting to stats instructors): predicting at observed values of x
-
-xseq is not advertised, but possibly of interest.. https://ggplot2.tidyverse.org/reference/geom_smooth.html
-
-```{r}
-# fit where the support is in the data... 
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() +
-  geom_smooth() + 
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt)
-
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() +
-  geom_smooth(formula = y ~ 1, 
-              method = lm, 
-              se = F) +
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt, 
-              method = lm, 
-              formula = y ~1)
-```
-
-# Proposal 00: Can we make this available in a bit 'smoother' way? 
-
-## Target code
-
-```{r, eval = F}
 library(ggsmoothfit)
 mtcars %>% 
   ggplot() + 
-  aes(wt, mpg) + 
-  geom_smooth_fit()
+  aes(wt, mpg) +
+  geom_point() +
+  geom_smooth() +
+  ggsmoothfit::stat_fit(color = "blue") + # alias as geom_smooth_fit()
+  ggsmoothfit::stat_fit(geom = "segment") # in future, wrap as geom_smooth_error()
 ```
 
-##  And also explicitly visualize error (residuals as segments)
 
-```{r, eval = F}
-last_plot() + 
-  geom_smooth_error() 
-```
-
+# Curious about implementation? Details about building these functions
 
 # Step 0. Examine ggplot2::StatSmooth$compute_group, and a dataframe that it returns
 
@@ -140,7 +69,7 @@ compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL
                        xseq = data$x, 
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    mutate(xend = data$x,
+    dplyr::mutate(xend = data$x,
            yend = data$y
            )
 }
@@ -160,7 +89,7 @@ compute_group_smooth_sq_error <- function(data, scales, method = NULL, formula =
                        se = FALSE, n= n, span = span, fullrange = fullrange,
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    mutate(ymin = y,
+    dplyr::mutate(ymin = y,
            xmin = x,
            ymax = yend,
            xmax = x + (ymax - ymin))
@@ -207,6 +136,30 @@ StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
 # Step 3. Pass to stat_* functions
 
 ```{r stat_fit}
+#' Title
+#'
+#' @param mapping 
+#' @param data 
+#' @param geom 
+#' @param position 
+#' @param ... 
+#' @param method 
+#' @param formula 
+#' @param se 
+#' @param n 
+#' @param span 
+#' @param fullrange 
+#' @param level 
+#' @param method.args 
+#' @param na.rm 
+#' @param orientation 
+#' @param show.legend 
+#' @param inherit.aes 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 stat_fit <- function(mapping = NULL, data = NULL,
             geom = "point", position = "identity",
             ...,
@@ -370,7 +323,105 @@ mtcars %>%
 ```
 
 
-# Make it a Package: Chunks to R dir and tests dir
+
+
+# Don't want to use ggsmoothfit?  Here are some ways to get it done with base ggplot2!
+
+## Option 1. Verbal description and move on...
+
+"image a line that drops down from the observation to the model line" use vanilla geom_smooth
+
+```{r stat-smooth}
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() + 
+  geom_smooth()
+```
+
+
+## Option 2: precalculate and plot 
+
+[stack overflow example goes here.]
+
+
+## Option 3: little known xseq argument and geom = "point"
+
+First a bit of under-the-hood thinking about geom_smooth/stat_smooth.
+
+```{r}
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_smooth(n = 12) +
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              n = 12)
+```
+
+Specify xseq... Almost surely new to you (and probably more interesting to stats instructors): predicting at observed values of x.. Warning, this is off label..
+
+xseq is not advertised, but possibly of interest.. https://ggplot2.tidyverse.org/reference/geom_smooth.html
+
+```{r}
+# fit where the support is in the data... 
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() +
+  geom_smooth() + 
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              xseq = mtcars$wt)
+
+
+mtcars %>%
+  ggplot() +
+  aes(x = wt, y = mpg) +
+  geom_point() +
+  geom_smooth() +
+  stat_smooth(geom = "segment",
+              color = "darkred",
+              xseq = mtcars$wt,
+              xend = mtcars$wt,
+              yend = mtcars$mpg
+  )
+
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() +
+  geom_smooth(formula = y ~ 1, 
+              method = lm, 
+              se = F) +
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              xseq = mtcars$wt, 
+              method = lm, 
+              formula = y ~1)
+```
+
+
+
+
+```{r, eval = T, echo = F}
+knitr::knit_exit()
+```
+
+# Part 2. Packaging and documentation  🚧 ✅ 
+
+
+
+## minimal requirements for github package.  Have you:
+
+### Created files for package archetecture with `devtools::create("./ggbarlabs")` ✅ 
+
+### Moved functions R folder? ✅  
+
+```{r}
+knitr::knit_code$get() |> names()
+```
+
 
 ```{r}
 readme2pkg::chunk_to_r(c("compute_group_smooth_fit", 
@@ -382,14 +433,87 @@ readme2pkg::chunk_to_r(c("compute_group_smooth_fit",
 
 
 
+### Added roxygen skeleton? ✅ 
 
-# History... 
+ for auto documentation and making sure proposed functions are *exported*
 
-- model by model ggplot2 extension... ggols and ggxmean
+### Managed dependencies ? ✅ 
 
-# Readme chunk contents
+package dependancies managed, i.e. `depend::function()` in proposed functions and declared in the DESCRIPTION
+
+### Chosen a license? ✅ 
+
+
+```{r, eval = F}
+usethis::use_package("ggplot2")
+usethis::use_mit_license()
+```
+
+### Run `devtools::check()` and addressed errors? ✅ 
+
+
+## Listen 🚧 
+
+### Consulted with potential users 🚧 
+### Consulted with technical experts 🚧 
+
+Getting started with that!
+
+## Polish.  Have you.
+
+### Settled on examples and put them in the roxygen skeleton? 🚧 
+
+### Written formal tests of functions? 🚧 
+
+
+### Sent tests in this readme to package via readme2pkg 🚧 
+
+That would look like this...
+
+```
+chunk_to_tests_testthat("test_geom_barlab_count")
+```
+
+
+### Have you worked added a description and author information in the DESCRIPTION file? 🚧 
+
+### Addressed *all* notes, warnings and errors. 🚧 
+
+## Promote
+
+### Package website built? 🚧 
+
+### Package website deployed? 🚧 
+
+## Harden
+
+### Submit to CRAN?  🚧 
+
+
+# Reports, Environment
+
+## Description file extract
 
 ```{r}
-knitr::knit_code$get() |> names()
+
 ```
+
+## Environment
+
+Here I just want to print the packages and the versions
+
+```{r}
+all <- sessionInfo() |> print() |> capture.output()
+all[11:17]
+
+
+```
+
+## `devtools::check()` report
+
+```{r, error = T}
+# rm(list = c("geom_barlab_count", "geom_barlab_count_percent"))
+devtools::check(pkg = ".")
+```
+
 
