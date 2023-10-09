@@ -6,6 +6,8 @@ StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", ggplot2::Stat,
   required_aes = c("x", "y")
 )
 
+
+
 StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
   setup_params = ggplot2::StatSmooth$setup_params,
   extra_params = c("na.rm", "orientation"),

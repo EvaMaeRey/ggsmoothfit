@@ -28,6 +28,46 @@
         plot](#option-2-precalculate-and-plot)
       - [Option 3: little known xseq argument and geom =
         “point”](#option-3-little-known-xseq-argument-and-geom--point)
+  - [Rise over run viz bonus…](#rise-over-run-viz-bonus)
+  - [Part 2. Packaging and documentation 🚧
+    ✅](#part-2-packaging-and-documentation--)
+      - [minimal requirements for github package. Have
+        you:](#minimal-requirements-for-github-package-have-you)
+          - [Created files for package archetecture with
+            `devtools::create("./ggbarlabs")`
+            ✅](#created-files-for-package-archetecture-with-devtoolscreateggbarlabs-)
+          - [Moved functions R folder? ✅](#moved-functions-r-folder-)
+          - [Added roxygen skeleton? ✅](#added-roxygen-skeleton-)
+          - [Managed dependencies ? ✅](#managed-dependencies--)
+          - [Chosen a license? ✅](#chosen-a-license-)
+          - [Run `devtools::check()` and addressed errors?
+            ✅](#run-devtoolscheck-and-addressed-errors-)
+      - [Listen 🚧](#listen-)
+          - [Consulted with potential users
+            🚧](#consulted-with-potential-users-)
+          - [Consulted with technical experts
+            🚧](#consulted-with-technical-experts-)
+      - [Polish. Have you.](#polish-have-you)
+          - [Settled on examples and put them in the roxygen skeleton?
+            🚧](#settled-on-examples-and-put-them-in-the-roxygen-skeleton-)
+          - [Written formal tests of functions?
+            🚧](#written-formal-tests-of-functions-)
+          - [Sent tests in this readme to package via readme2pkg
+            🚧](#sent-tests-in-this-readme-to-package-via-readme2pkg-)
+          - [Have you worked added a description and author information
+            in the DESCRIPTION file?
+            🚧](#have-you-worked-added-a-description-and-author-information-in-the-description-file-)
+          - [Addressed *all* notes, warnings and errors.
+            🚧](#addressed-all-notes-warnings-and-errors-)
+      - [Promote](#promote)
+          - [Package website built? 🚧](#package-website-built-)
+          - [Package website deployed? 🚧](#package-website-deployed-)
+      - [Harden](#harden)
+          - [Submit to CRAN? 🚧](#submit-to-cran-)
+  - [Reports, Environment](#reports-environment)
+      - [Description file extract](#description-file-extract)
+      - [Environment](#environment)
+      - [`devtools::check()` report](#devtoolscheck-report)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
@@ -66,62 +106,17 @@ Key take away: this function allows you to set values of x with the
 sequence.
 
 ``` r
-ggplot2::StatSmooth$compute_group
-#> <ggproto method>
-#>   <Wrapper function>
-#>     function (...) 
-#> compute_group(...)
-#> 
-#>   <Inner function (f)>
-#>     function (data, scales, method = NULL, formula = NULL, se = TRUE, 
-#>     n = 80, span = 0.75, fullrange = FALSE, xseq = NULL, level = 0.95, 
-#>     method.args = list(), na.rm = FALSE, flipped_aes = NA) 
-#> {
-#>     data <- flip_data(data, flipped_aes)
-#>     if (length(unique0(data$x)) < 2) {
-#>         return(data_frame0())
-#>     }
-#>     if (is.null(data$weight)) 
-#>         data$weight <- 1
-#>     if (is.null(xseq)) {
-#>         if (is.integer(data$x)) {
-#>             if (fullrange) {
-#>                 xseq <- scales$x$dimension()
-#>             }
-#>             else {
-#>                 xseq <- sort(unique0(data$x))
-#>             }
-#>         }
-#>         else {
-#>             if (fullrange) {
-#>                 range <- scales$x$dimension()
-#>             }
-#>             else {
-#>                 range <- range(data$x, na.rm = TRUE)
-#>             }
-#>             xseq <- seq(range[1], range[2], length.out = n)
-#>         }
-#>     }
-#>     if (identical(method, "loess")) {
-#>         method.args$span <- span
-#>     }
-#>     if (is.character(method)) {
-#>         if (identical(method, "gam")) {
-#>             method <- mgcv::gam
-#>         }
-#>         else {
-#>             method <- match.fun(method)
-#>         }
-#>     }
-#>     if (identical(method, mgcv::gam) && is.null(method.args$method)) {
-#>         method.args$method <- "REML"
-#>     }
-#>     model <- inject(method(formula, data = data, weights = weight, 
-#>         !!!method.args))
-#>     prediction <- predictdf(model, xseq, se, level)
-#>     prediction$flipped_aes <- flipped_aes
-#>     flip_data(prediction, flipped_aes)
-#> }
+ggplot2::StatSmooth$compute_group %>% capture.output() %>% .[1:10]
+#>  [1] "<ggproto method>"                                                       
+#>  [2] "  <Wrapper function>"                                                   
+#>  [3] "    function (...) "                                                    
+#>  [4] "compute_group(...)"                                                     
+#>  [5] ""                                                                       
+#>  [6] "  <Inner function (f)>"                                                 
+#>  [7] "    function (data, scales, method = NULL, formula = NULL, se = TRUE, " 
+#>  [8] "    n = 80, span = 0.75, fullrange = FALSE, xseq = NULL, level = 0.95, "
+#>  [9] "    method.args = list(), na.rm = FALSE, flipped_aes = NA) "            
+#> [10] "{"
 
 library(dplyr)
 mtcars %>%
@@ -152,17 +147,30 @@ xend and yend are computed to draw the segments visualizing the error.
 compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL,
                            se = TRUE, n = 80, span = 0.75, fullrange = FALSE,
                            level = 0.95, method.args = list(),
-                           na.rm = FALSE, flipped_aes = NA){
+                           na.rm = FALSE, flipped_aes = NA, xseq = NULL){
   
-  ggplot2::StatSmooth$compute_group(data = data, scales = scales, 
+  if(is.null(xseq)){
+    xseq <- data$x
+    was_null = T
+    }else{was_null = F}
+  
+  out <- ggplot2::StatSmooth$compute_group(data = data, scales = scales, 
                        method = method, formula = formula, 
                        se = FALSE, n= n, span = span, fullrange = fullrange,
-                       xseq = data$x, 
+                       xseq = xseq, 
                        level = .95, method.args = method.args, 
-                       na.rm = na.rm, flipped_aes = flipped_aes) %>% 
-    dplyr::mutate(xend = data$x,
-           yend = data$y
-           )
+                       na.rm = na.rm, flipped_aes = flipped_aes) 
+  
+  if(was_null){
+  out$x_obs <-  data$x
+  out$y_obs <- data$y
+  }
+  
+  out$xend <- out$x_obs
+  out$yend <- out$y_obs
+  
+  out
+  
 }
 ```
 
@@ -203,33 +211,44 @@ mtcars %>%
   slice(1:10) %>% 
   rename(x = wt, y = mpg) %>% 
   compute_group_smooth_fit(method = lm, formula = y ~ x)
-#>        x        y flipped_aes  xend yend
-#> 1  2.620 22.54689          NA 2.620 21.0
-#> 2  2.875 21.45416          NA 2.875 21.0
-#> 3  2.320 23.83246          NA 2.320 22.8
-#> 4  3.215 19.99719          NA 3.215 21.4
-#> 5  3.440 19.03301          NA 3.440 18.7
-#> 6  3.460 18.94731          NA 3.460 18.1
-#> 7  3.570 18.47593          NA 3.570 14.3
-#> 8  3.190 20.10432          NA 3.190 24.4
-#> 9  3.150 20.27573          NA 3.150 22.8
-#> 10 3.440 19.03301          NA 3.440 19.2
+#>        x        y flipped_aes x_obs y_obs  xend yend
+#> 1  2.620 22.54689          NA 2.620  21.0 2.620 21.0
+#> 2  2.875 21.45416          NA 2.875  21.0 2.875 21.0
+#> 3  2.320 23.83246          NA 2.320  22.8 2.320 22.8
+#> 4  3.215 19.99719          NA 3.215  21.4 3.215 21.4
+#> 5  3.440 19.03301          NA 3.440  18.7 3.440 18.7
+#> 6  3.460 18.94731          NA 3.460  18.1 3.460 18.1
+#> 7  3.570 18.47593          NA 3.570  14.3 3.570 14.3
+#> 8  3.190 20.10432          NA 3.190  24.4 3.190 24.4
+#> 9  3.150 20.27573          NA 3.150  22.8 3.150 22.8
+#> 10 3.440 19.03301          NA 3.440  19.2 3.440 19.2
 
 mtcars %>% 
   slice(1:10) %>% 
   rename(x = wt, y = mpg) %>% 
   compute_group_smooth_sq_error(method = lm, formula = y ~ x)
-#>        x        y flipped_aes  xend yend     ymin  xmin ymax       xmax
-#> 1  2.620 22.54689          NA 2.620 21.0 22.54689 2.620 21.0  1.0731060
-#> 2  2.875 21.45416          NA 2.875 21.0 21.45416 2.875 21.0  2.4208382
-#> 3  2.320 23.83246          NA 2.320 22.8 23.83246 2.320 22.8  1.2875387
-#> 4  3.215 19.99719          NA 3.215 21.4 19.99719 3.215 21.4  4.6178145
-#> 5  3.440 19.03301          NA 3.440 18.7 19.03301 3.440 18.7  3.1069900
-#> 6  3.460 18.94731          NA 3.460 18.1 18.94731 3.460 18.1  2.6126945
-#> 7  3.570 18.47593          NA 3.570 14.3 18.47593 3.570 14.3 -0.6059308
-#> 8  3.190 20.10432          NA 3.190 24.4 20.10432 3.190 24.4  7.4856839
-#> 9  3.150 20.27573          NA 3.150 22.8 20.27573 3.150 22.8  5.6742749
-#> 10 3.440 19.03301          NA 3.440 19.2 19.03301 3.440 19.2  3.6069900
+#>        x        y flipped_aes x_obs y_obs  xend yend     ymin  xmin ymax
+#> 1  2.620 22.54689          NA 2.620  21.0 2.620 21.0 22.54689 2.620 21.0
+#> 2  2.875 21.45416          NA 2.875  21.0 2.875 21.0 21.45416 2.875 21.0
+#> 3  2.320 23.83246          NA 2.320  22.8 2.320 22.8 23.83246 2.320 22.8
+#> 4  3.215 19.99719          NA 3.215  21.4 3.215 21.4 19.99719 3.215 21.4
+#> 5  3.440 19.03301          NA 3.440  18.7 3.440 18.7 19.03301 3.440 18.7
+#> 6  3.460 18.94731          NA 3.460  18.1 3.460 18.1 18.94731 3.460 18.1
+#> 7  3.570 18.47593          NA 3.570  14.3 3.570 14.3 18.47593 3.570 14.3
+#> 8  3.190 20.10432          NA 3.190  24.4 3.190 24.4 20.10432 3.190 24.4
+#> 9  3.150 20.27573          NA 3.150  22.8 3.150 22.8 20.27573 3.150 22.8
+#> 10 3.440 19.03301          NA 3.440  19.2 3.440 19.2 19.03301 3.440 19.2
+#>          xmax
+#> 1   1.0731060
+#> 2   2.4208382
+#> 3   1.2875387
+#> 4   4.6178145
+#> 5   3.1069900
+#> 6   2.6126945
+#> 7  -0.6059308
+#> 8   7.4856839
+#> 9   5.6742749
+#> 10  3.6069900
 ```
 
 # Step 2. Pass to ggproto
@@ -242,6 +261,8 @@ StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", ggplot2::Stat,
   dropped_aes = c("weight"),
   required_aes = c("x", "y")
 )
+
+
 
 StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
   setup_params = ggplot2::StatSmooth$setup_params,
@@ -511,30 +532,316 @@ mtcars %>%
   aes(wt, mpg) + 
   geom_point() +
   geom_smooth() + 
-  stat_smooth(geom = "point",  color = "blue", 
+  stat_smooth(geom = "point",  color = "blue", # fitted values
               xseq = mtcars$wt) +
-  stat_smooth(geom = "segment", color = "darkred",
+  stat_smooth(geom = "segment", color = "darkred", # residuals
               xseq = mtcars$wt,
               xend = mtcars$wt,
-              yend = mtcars$mpg
-  )
+              yend = mtcars$mpg)
 ```
 
-<img src="README_files/figure-gfm/unnamed-chunk-9-1.png" width="45%" />
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+# Rise over run viz bonus…
 
 ``` r
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
+mtcars |>
+  ggplot(aes(wt, mpg)) +
   geom_point() +
-  geom_smooth(formula = y ~ 1, 
-              method = lm, 
-              se = F) +
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              xseq = mtcars$wt, 
-              method = lm, 
-              formula = y ~1)
+  geom_smooth(method = lm) +
+  stat_smooth(method = lm, 
+              geom = 'point',
+              xseq = c(2,3), 
+              size = 3, 
+              color = "blue") +
+  stat_smooth(method = lm,
+              geom = "segment", # draw fitted values as points
+              color = "darkred",
+              xseq = c(2,3), # 'from', 'to' value pair
+              aes(yend = after_stat(y[1]), # 'from' value of y
+                  xend = 3), # 'to' value of x
+              arrow = arrow(ends = c("last", "first"), 
+                            length = unit(.1, "in"))) +
+  labs(title = "For each 1000 lbs increase in weight...")
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+``` r
+
+
+geom_smooth_arrows <- function(method = lm, formula = y ~ x,
+                              color = "darkred", xseq = 0:1){
+  
+  stat_smooth(method = method,
+              formula = formula,
+              geom = "segment", # draw fitted values as points
+              color = color,
+              xseq = xseq, # 'from', 'to' value pair
+              aes(yend = after_stat(y[1]), # 'from' value of y
+                  xend = xseq[2]), # 'to' value of x
+              arrow = arrow(ends = c("last", "first"), 
+                            length = unit(.1, "in")))
+} 
+
+mtcars |>
+  ggplot(aes(wt, mpg)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  geom_smooth_arrows(xseq = 2:3)
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
+
+# Part 2. Packaging and documentation 🚧 ✅
+
+## minimal requirements for github package. Have you:
+
+### Created files for package archetecture with `devtools::create("./ggbarlabs")` ✅
+
+### Moved functions R folder? ✅
+
+``` r
+knitr::knit_code$get() |> names()
+#>  [1] "unnamed-chunk-1"               "unnamed-chunk-2"              
+#>  [3] "unnamed-chunk-3"               "compute_group_smooth_fit"     
+#>  [5] "compute_group_smooth_sq_error" "unnamed-chunk-4"              
+#>  [7] "ggproto_objects"               "stat_fit"                     
+#>  [9] "stat_errorsq"                  "test"                         
+#> [11] "squaring"                      "unnamed-chunk-5"              
+#> [13] "unnamed-chunk-6"               "unnamed-chunk-7"              
+#> [15] "stat-smooth"                   "unnamed-chunk-8"              
+#> [17] "unnamed-chunk-9"               "unnamed-chunk-10"             
+#> [19] "unnamed-chunk-11"              "unnamed-chunk-12"             
+#> [21] "unnamed-chunk-13"              "unnamed-chunk-14"             
+#> [23] "unnamed-chunk-15"              "unnamed-chunk-16"             
+#> [25] "unnamed-chunk-17"
+```
+
+``` r
+readme2pkg::chunk_to_r(c("compute_group_smooth_fit", 
+                         "compute_group_smooth_sq_error",
+                         "ggproto_objects",
+                         "stat_fit", 
+                         "stat_errorsq"))
+```
+
+### Added roxygen skeleton? ✅
+
+for auto documentation and making sure proposed functions are *exported*
+
+### Managed dependencies ? ✅
+
+package dependancies managed, i.e. `depend::function()` in proposed
+functions and declared in the DESCRIPTION
+
+### Chosen a license? ✅
+
+``` r
+usethis::use_package("ggplot2")
+usethis::use_mit_license()
+```
+
+### Run `devtools::check()` and addressed errors? ✅
+
+## Listen 🚧
+
+### Consulted with potential users 🚧
+
+### Consulted with technical experts 🚧
+
+Getting started with that\!
+
+## Polish. Have you.
+
+### Settled on examples and put them in the roxygen skeleton? 🚧
+
+### Written formal tests of functions? 🚧
+
+### Sent tests in this readme to package via readme2pkg 🚧
+
+That would look like this…
+
+    chunk_to_tests_testthat("test_geom_barlab_count")
+
+### Have you worked added a description and author information in the DESCRIPTION file? 🚧
+
+### Addressed *all* notes, warnings and errors. 🚧
+
+## Promote
+
+### Package website built? 🚧
+
+### Package website deployed? 🚧
+
+## Harden
+
+### Submit to CRAN? 🚧
+
+# Reports, Environment
+
+## Description file extract
+
+## Environment
+
+Here I just want to print the packages and the versions
+
+``` r
+all <- sessionInfo() |> print() |> capture.output()
+all[11:17]
+#> [1] ""                                                                         
+#> [2] "attached base packages:"                                                  
+#> [3] "[1] stats     graphics  grDevices utils     datasets  methods   base     "
+#> [4] ""                                                                         
+#> [5] "other attached packages:"                                                 
+#> [6] " [1] ggsmoothfit_0.0.0.9000 lubridate_1.9.2        forcats_1.0.0         "
+#> [7] " [4] stringr_1.5.0          dplyr_1.1.0            purrr_1.0.1           "
+```
+
+## `devtools::check()` report
+
+``` r
+# rm(list = c("geom_barlab_count", "geom_barlab_count_percent"))
+devtools::check(pkg = ".")
+#> ══ Documenting ═════════════════════════════════════════════════════════════════
+#> ℹ Updating ggsmoothfit documentation
+#> ℹ Loading ggsmoothfit
+#> Warning: ── Conflicts ────────────────────────────────────────── ggsmoothfit conflicts
+#> ──
+#> ✖ `stat_fit` masks `ggsmoothfit::stat_fit()`.
+#> ℹ Did you accidentally source a file rather than using `load_all()`?
+#>   Run `rm(list = c("stat_fit"))` to remove the conflicts.
+#> Warning: [stat_fit.R:21] @return requires a value
+#> Warning: [stat_fit.R:24] @examples requires a value
+#> 
+#> ══ Building ════════════════════════════════════════════════════════════════════
+#> Setting env vars:
+#> • CFLAGS    : -Wall -pedantic
+#> • CXXFLAGS  : -Wall -pedantic
+#> • CXX11FLAGS: -Wall -pedantic
+#> • CXX14FLAGS: -Wall -pedantic
+#> • CXX17FLAGS: -Wall -pedantic
+#> • CXX20FLAGS: -Wall -pedantic
+#> ── R CMD build ─────────────────────────────────────────────────────────────────
+#> * checking for file ‘/Users/evangelinereynolds/Google Drive/r_packages/ggsmoothfit/DESCRIPTION’ ... OK
+#> * preparing ‘ggsmoothfit’:
+#> * checking DESCRIPTION meta-information ... OK
+#> * checking for LF line-endings in source and make files and shell scripts
+#> * checking for empty or unneeded directories
+#> * building ‘ggsmoothfit_0.0.0.9000.tar.gz’
+#> 
+#> ══ Checking ════════════════════════════════════════════════════════════════════
+#> Setting env vars:
+#> • _R_CHECK_CRAN_INCOMING_REMOTE_               : FALSE
+#> • _R_CHECK_CRAN_INCOMING_                      : FALSE
+#> • _R_CHECK_FORCE_SUGGESTS_                     : FALSE
+#> • _R_CHECK_PACKAGES_USED_IGNORE_UNUSED_IMPORTS_: FALSE
+#> • NOT_CRAN                                     : true
+#> ── R CMD check ─────────────────────────────────────────────────────────────────
+#> * using log directory ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/RtmpkkQrZ9/filebc2e66712ff7/ggsmoothfit.Rcheck’
+#> * using R version 4.2.2 (2022-10-31)
+#> * using platform: x86_64-apple-darwin17.0 (64-bit)
+#> * using session charset: UTF-8
+#> * using options ‘--no-manual --as-cran’
+#> * checking for file ‘ggsmoothfit/DESCRIPTION’ ... OK
+#> * this is package ‘ggsmoothfit’ version ‘0.0.0.9000’
+#> * package encoding: UTF-8
+#> * checking package namespace information ... OK
+#> * checking package dependencies ... OK
+#> * checking if this is a source package ... OK
+#> * checking if there is a namespace ... OK
+#> * checking for executable files ... OK
+#> * checking for hidden files and directories ... OK
+#> * checking for portable file names ... OK
+#> * checking for sufficient/correct file permissions ... OK
+#> * checking serialization versions ... OK
+#> * checking whether package ‘ggsmoothfit’ can be installed ... OK
+#> * checking installed package size ... OK
+#> * checking package directory ... OK
+#> * checking for future file timestamps ... OK
+#> * checking DESCRIPTION meta-information ... OK
+#> * checking top-level files ... NOTE
+#> Non-standard files/directories found at top level:
+#>   ‘README.Rmd’ ‘README_files’
+#> * checking for left-over files ... OK
+#> * checking index information ... OK
+#> * checking package subdirectories ... OK
+#> * checking R files for non-ASCII characters ... OK
+#> * checking R files for syntax errors ... OK
+#> * checking whether the package can be loaded ... OK
+#> * checking whether the package can be loaded with stated dependencies ... OK
+#> * checking whether the package can be unloaded cleanly ... OK
+#> * checking whether the namespace can be loaded with stated dependencies ... OK
+#> * checking whether the namespace can be unloaded cleanly ... OK
+#> * checking dependencies in R code ... OK
+#> * checking S3 generic/method consistency ... OK
+#> * checking replacement functions ... OK
+#> * checking foreign function calls ... OK
+#> * checking R code for possible problems ... [0m/11m] NOTE
+#> compute_group_smooth_sq_error: no visible binding for global variable
+#>   ‘y’
+#> compute_group_smooth_sq_error: no visible binding for global variable
+#>   ‘x’
+#> compute_group_smooth_sq_error: no visible binding for global variable
+#>   ‘yend’
+#> compute_group_smooth_sq_error: no visible binding for global variable
+#>   ‘ymax’
+#> compute_group_smooth_sq_error: no visible binding for global variable
+#>   ‘ymin’
+#> Undefined global functions or variables:
+#>   x y yend ymax ymin
+#> * checking Rd files ... OK
+#> * checking Rd metadata ... OK
+#> * checking Rd line widths ... OK
+#> * checking Rd cross-references ... OK
+#> * checking for missing documentation entries ... OK
+#> * checking for code/documentation mismatches ... OK
+#> * checking Rd \usage sections ... OK
+#> * checking Rd contents ... WARNING
+#> Argument items with no description in Rd object 'stat_fit':
+#>   ‘mapping’ ‘data’ ‘geom’ ‘position’ ‘...’ ‘method’ ‘formula’ ‘se’ ‘n’
+#>   ‘span’ ‘fullrange’ ‘level’ ‘method.args’ ‘na.rm’ ‘orientation’
+#>   ‘show.legend’ ‘inherit.aes’
+#> * checking for unstated dependencies in examples ... OK
+#> * checking examples ... NONE
+#> * checking for non-standard things in the check directory ... OK
+#> * checking for detritus in the temp directory ... OK
+#> * DONE
+#> Status: 1 WARNING, 2 NOTEs
+#> See
+#>   ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/RtmpkkQrZ9/filebc2e66712ff7/ggsmoothfit.Rcheck/00check.log’
+#> for details.
+#> ── R CMD check results ───────────────────────────── ggsmoothfit 0.0.0.9000 ────
+#> Duration: 1h 58m 17.2s
+#> 
+#> ❯ checking Rd contents ... WARNING
+#>   Argument items with no description in Rd object 'stat_fit':
+#>     ‘mapping’ ‘data’ ‘geom’ ‘position’ ‘...’ ‘method’ ‘formula’ ‘se’ ‘n’
+#>     ‘span’ ‘fullrange’ ‘level’ ‘method.args’ ‘na.rm’ ‘orientation’
+#>     ‘show.legend’ ‘inherit.aes’
+#> 
+#> ❯ checking top-level files ... NOTE
+#>   Non-standard files/directories found at top level:
+#>     ‘README.Rmd’ ‘README_files’
+#> 
+#> ❯ checking R code for possible problems ... [0m/11m] NOTE
+#>   compute_group_smooth_sq_error: no visible binding for global variable
+#>     ‘y’
+#>   compute_group_smooth_sq_error: no visible binding for global variable
+#>     ‘x’
+#>   compute_group_smooth_sq_error: no visible binding for global variable
+#>     ‘yend’
+#>   compute_group_smooth_sq_error: no visible binding for global variable
+#>     ‘ymax’
+#>   compute_group_smooth_sq_error: no visible binding for global variable
+#>     ‘ymin’
+#>   Undefined global functions or variables:
+#>     x y yend ymax ymin
+#> 
+#> 0 errors ✔ | 1 warning ✖ | 2 notes ✖
+#> Error: R CMD check found WARNINGs
+```
