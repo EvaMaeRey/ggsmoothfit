@@ -2,6 +2,8 @@
   - [ggsmoothfit](#ggsmoothfit)
   - [Curious about implementation? Details about building these
     functions](#curious-about-implementation-details-about-building-these-functions)
+  - [Step 00. Create alias of stat\_smooth(geom = “point”, xseq =
+    ?)](#step-00-create-alias-of-stat_smoothgeom--point-xseq--)
   - [Step 0. Examine ggplot2::StatSmooth$compute\_group, and a dataframe
     that it
     returns](#step-0-examine-ggplot2statsmoothcompute_group-and-a-dataframe-that-it-returns)
@@ -43,10 +45,10 @@
           - [Run `devtools::check()` and addressed errors?
             ✅](#run-devtoolscheck-and-addressed-errors-)
       - [Listen 🚧](#listen-)
-          - [Consulted with potential users
-            🚧](#consulted-with-potential-users-)
           - [Consulted with technical experts
             🚧](#consulted-with-technical-experts-)
+          - [Consulted with potential users
+            🚧](#consulted-with-potential-users-)
       - [Polish. Have you.](#polish-have-you)
           - [Settled on examples and put them in the roxygen skeleton?
             🚧](#settled-on-examples-and-put-them-in-the-roxygen-skeleton-)
@@ -99,6 +101,49 @@ mtcars %>%
 
 # Curious about implementation? Details about building these functions
 
+# Step 00. Create alias of stat\_smooth(geom = “point”, xseq = ?)
+
+Make it a bit easier for the user to stat\_smooth(geom = “point”, xseq =
+?)
+
+``` r
+geom_smooth_predict <- function(xseq,  mapping = NULL, data = NULL, ..., method = NULL, formula = NULL, se = TRUE, method.args = list(), na.rm = FALSE, orientation = NA, show.legend = NA, inherit.aes = TRUE, color = "blue"){
+  
+  stat_smooth( mapping = mapping, data = data, geom = "point", position = "identity", xseq = xseq,  ..., method = method, formula = formula, se = se, method.args = list(), na.rm = na.rm, orientation = orientation, show.legend = show.legend, inherit.aes = inherit.aes, color = color
+)
+  
+}
+
+mtcars %>% 
+  ggplot() + 
+  aes(wt, mpg) +
+  geom_point() +
+  geom_smooth() + 
+  geom_smooth_predict(xseq = 2:3)
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/geom_smooth_predict-1.png)<!-- -->
+
+``` r
+
+
+mtcars %>% 
+  ggplot() + 
+  aes(wt, mpg) +
+  geom_point() +
+  geom_smooth(method = lm) + 
+  geom_smooth_predict(xseq = 0,
+                     method = lm, 
+                     color = "red",
+                     size = 4)
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/geom_smooth_predict-2.png)<!-- -->
+
 # Step 0. Examine ggplot2::StatSmooth$compute\_group, and a dataframe that it returns
 
 Key take away: this function allows you to set values of x with the
@@ -147,24 +192,19 @@ xend and yend are computed to draw the segments visualizing the error.
 compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL,
                            se = TRUE, n = 80, span = 0.75, fullrange = FALSE,
                            level = 0.95, method.args = list(),
-                           na.rm = FALSE, flipped_aes = NA, xseq = NULL){
+                           na.rm = FALSE, flipped_aes = NA){
   
-  if(is.null(xseq)){
-    xseq <- data$x
-    was_null = T
-    }else{was_null = F}
   
   out <- ggplot2::StatSmooth$compute_group(data = data, scales = scales, 
                        method = method, formula = formula, 
                        se = FALSE, n= n, span = span, fullrange = fullrange,
-                       xseq = xseq, 
+                       xseq = data$x, 
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) 
   
-  if(was_null){
+
   out$x_obs <-  data$x
   out$y_obs <- data$y
-  }
   
   out$xend <- out$x_obs
   out$yend <- out$y_obs
@@ -259,10 +299,10 @@ StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", ggplot2::Stat,
   extra_params = c("na.rm", "orientation"),
   compute_group = compute_group_smooth_fit,
   dropped_aes = c("weight"),
-  required_aes = c("x", "y")
+  required_aes = c("x", "y"),
+  default_aes = ggplot2::aes(xend = after_stat(x_obs), yend = after_stat(y_obs))
+
 )
-
-
 
 StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
   setup_params = ggplot2::StatSmooth$setup_params,
@@ -573,7 +613,7 @@ mtcars |>
 ``` r
 
 
-geom_smooth_arrows <- function(method = lm, formula = y ~ x,
+geom_smooth_step <- function(method = lm, formula = y ~ x,
                               color = "darkred", xseq = 0:1){
   
   stat_smooth(method = method,
@@ -591,7 +631,7 @@ mtcars |>
   ggplot(aes(wt, mpg)) +
   geom_point() +
   geom_smooth(method = lm) +
-  geom_smooth_arrows(xseq = 2:3)
+  geom_smooth_step(xseq = 2:3)
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
@@ -608,22 +648,23 @@ mtcars |>
 ``` r
 knitr::knit_code$get() |> names()
 #>  [1] "unnamed-chunk-1"               "unnamed-chunk-2"              
-#>  [3] "unnamed-chunk-3"               "compute_group_smooth_fit"     
-#>  [5] "compute_group_smooth_sq_error" "unnamed-chunk-4"              
-#>  [7] "ggproto_objects"               "stat_fit"                     
-#>  [9] "stat_errorsq"                  "test"                         
-#> [11] "squaring"                      "unnamed-chunk-5"              
-#> [13] "unnamed-chunk-6"               "unnamed-chunk-7"              
-#> [15] "stat-smooth"                   "unnamed-chunk-8"              
-#> [17] "unnamed-chunk-9"               "unnamed-chunk-10"             
-#> [19] "unnamed-chunk-11"              "unnamed-chunk-12"             
-#> [21] "unnamed-chunk-13"              "unnamed-chunk-14"             
-#> [23] "unnamed-chunk-15"              "unnamed-chunk-16"             
-#> [25] "unnamed-chunk-17"
+#>  [3] "geom_smooth_predict"           "unnamed-chunk-3"              
+#>  [5] "compute_group_smooth_fit"      "compute_group_smooth_sq_error"
+#>  [7] "unnamed-chunk-4"               "ggproto_objects"              
+#>  [9] "stat_fit"                      "stat_errorsq"                 
+#> [11] "test"                          "squaring"                     
+#> [13] "unnamed-chunk-5"               "unnamed-chunk-6"              
+#> [15] "unnamed-chunk-7"               "stat-smooth"                  
+#> [17] "unnamed-chunk-8"               "unnamed-chunk-9"              
+#> [19] "unnamed-chunk-10"              "unnamed-chunk-11"             
+#> [21] "unnamed-chunk-12"              "unnamed-chunk-13"             
+#> [23] "unnamed-chunk-14"              "unnamed-chunk-15"             
+#> [25] "unnamed-chunk-16"              "unnamed-chunk-17"
 ```
 
 ``` r
-readme2pkg::chunk_to_r(c("compute_group_smooth_fit", 
+readme2pkg::chunk_to_r(c("geom_smooth_predict",
+                         "compute_group_smooth_fit", 
                          "compute_group_smooth_sq_error",
                          "ggproto_objects",
                          "stat_fit", 
@@ -650,9 +691,9 @@ usethis::use_mit_license()
 
 ## Listen 🚧
 
-### Consulted with potential users 🚧
-
 ### Consulted with technical experts 🚧
+
+### Consulted with potential users 🚧
 
 Getting started with that\!
 
@@ -742,7 +783,7 @@ devtools::check(pkg = ".")
 #> • _R_CHECK_PACKAGES_USED_IGNORE_UNUSED_IMPORTS_: FALSE
 #> • NOT_CRAN                                     : true
 #> ── R CMD check ─────────────────────────────────────────────────────────────────
-#> * using log directory ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/RtmpkkQrZ9/filebc2e66712ff7/ggsmoothfit.Rcheck’
+#> * using log directory ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/Rtmpv6ypK0/filee220334f89fd/ggsmoothfit.Rcheck’
 #> * using R version 4.2.2 (2022-10-31)
 #> * using platform: x86_64-apple-darwin17.0 (64-bit)
 #> * using session charset: UTF-8
@@ -759,89 +800,33 @@ devtools::check(pkg = ".")
 #> * checking for portable file names ... OK
 #> * checking for sufficient/correct file permissions ... OK
 #> * checking serialization versions ... OK
-#> * checking whether package ‘ggsmoothfit’ can be installed ... OK
-#> * checking installed package size ... OK
-#> * checking package directory ... OK
-#> * checking for future file timestamps ... OK
-#> * checking DESCRIPTION meta-information ... OK
-#> * checking top-level files ... NOTE
-#> Non-standard files/directories found at top level:
-#>   ‘README.Rmd’ ‘README_files’
-#> * checking for left-over files ... OK
-#> * checking index information ... OK
-#> * checking package subdirectories ... OK
-#> * checking R files for non-ASCII characters ... OK
-#> * checking R files for syntax errors ... OK
-#> * checking whether the package can be loaded ... OK
-#> * checking whether the package can be loaded with stated dependencies ... OK
-#> * checking whether the package can be unloaded cleanly ... OK
-#> * checking whether the namespace can be loaded with stated dependencies ... OK
-#> * checking whether the namespace can be unloaded cleanly ... OK
-#> * checking dependencies in R code ... OK
-#> * checking S3 generic/method consistency ... OK
-#> * checking replacement functions ... OK
-#> * checking foreign function calls ... OK
-#> * checking R code for possible problems ... [0m/11m] NOTE
-#> compute_group_smooth_sq_error: no visible binding for global variable
-#>   ‘y’
-#> compute_group_smooth_sq_error: no visible binding for global variable
-#>   ‘x’
-#> compute_group_smooth_sq_error: no visible binding for global variable
-#>   ‘yend’
-#> compute_group_smooth_sq_error: no visible binding for global variable
-#>   ‘ymax’
-#> compute_group_smooth_sq_error: no visible binding for global variable
-#>   ‘ymin’
-#> Undefined global functions or variables:
-#>   x y yend ymax ymin
-#> * checking Rd files ... OK
-#> * checking Rd metadata ... OK
-#> * checking Rd line widths ... OK
-#> * checking Rd cross-references ... OK
-#> * checking for missing documentation entries ... OK
-#> * checking for code/documentation mismatches ... OK
-#> * checking Rd \usage sections ... OK
-#> * checking Rd contents ... WARNING
-#> Argument items with no description in Rd object 'stat_fit':
-#>   ‘mapping’ ‘data’ ‘geom’ ‘position’ ‘...’ ‘method’ ‘formula’ ‘se’ ‘n’
-#>   ‘span’ ‘fullrange’ ‘level’ ‘method.args’ ‘na.rm’ ‘orientation’
-#>   ‘show.legend’ ‘inherit.aes’
-#> * checking for unstated dependencies in examples ... OK
-#> * checking examples ... NONE
-#> * checking for non-standard things in the check directory ... OK
-#> * checking for detritus in the temp directory ... OK
+#> * checking whether package ‘ggsmoothfit’ can be installed ... ERROR
+#> Installation failed.
+#> See ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/Rtmpv6ypK0/filee220334f89fd/ggsmoothfit.Rcheck/00install.out’ for details.
 #> * DONE
-#> Status: 1 WARNING, 2 NOTEs
+#> Status: 1 ERROR
 #> See
-#>   ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/RtmpkkQrZ9/filebc2e66712ff7/ggsmoothfit.Rcheck/00check.log’
+#>   ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/Rtmpv6ypK0/filee220334f89fd/ggsmoothfit.Rcheck/00check.log’
 #> for details.
+#> 
 #> ── R CMD check results ───────────────────────────── ggsmoothfit 0.0.0.9000 ────
-#> Duration: 1h 58m 17.2s
+#> Duration: 11.4s
 #> 
-#> ❯ checking Rd contents ... WARNING
-#>   Argument items with no description in Rd object 'stat_fit':
-#>     ‘mapping’ ‘data’ ‘geom’ ‘position’ ‘...’ ‘method’ ‘formula’ ‘se’ ‘n’
-#>     ‘span’ ‘fullrange’ ‘level’ ‘method.args’ ‘na.rm’ ‘orientation’
-#>     ‘show.legend’ ‘inherit.aes’
+#> ❯ checking whether package ‘ggsmoothfit’ can be installed ... ERROR
+#>   See below...
 #> 
-#> ❯ checking top-level files ... NOTE
-#>   Non-standard files/directories found at top level:
-#>     ‘README.Rmd’ ‘README_files’
+#> ── Install failure ─────────────────────────────────────────────────────────────
 #> 
-#> ❯ checking R code for possible problems ... [0m/11m] NOTE
-#>   compute_group_smooth_sq_error: no visible binding for global variable
-#>     ‘y’
-#>   compute_group_smooth_sq_error: no visible binding for global variable
-#>     ‘x’
-#>   compute_group_smooth_sq_error: no visible binding for global variable
-#>     ‘yend’
-#>   compute_group_smooth_sq_error: no visible binding for global variable
-#>     ‘ymax’
-#>   compute_group_smooth_sq_error: no visible binding for global variable
-#>     ‘ymin’
-#>   Undefined global functions or variables:
-#>     x y yend ymax ymin
+#> * installing *source* package ‘ggsmoothfit’ ...
+#> ** using staged installation
+#> ** R
+#> ** byte-compile and prepare package for lazy loading
+#> Error in ggplot(.) : could not find function "ggplot"
+#> Error: unable to load R code in package ‘ggsmoothfit’
+#> Execution halted
+#> ERROR: lazy loading failed for package ‘ggsmoothfit’
+#> * removing ‘/private/var/folders/zy/vfmj60bs3zv6r_2dsk18_vj00000gn/T/Rtmpv6ypK0/filee220334f89fd/ggsmoothfit.Rcheck/ggsmoothfit’
 #> 
-#> 0 errors ✔ | 1 warning ✖ | 2 notes ✖
-#> Error: R CMD check found WARNINGs
+#> 1 error ✖ | 0 warnings ✔ | 0 notes ✔
+#> Error: R CMD check found ERRORs
 ```
