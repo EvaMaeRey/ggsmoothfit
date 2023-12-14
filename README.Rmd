@@ -620,7 +620,7 @@ all[11:17]
 
 ## `devtools::check()` report
 
-```{r, error = T}
+```{r, error = T, eval = F}
 # rm(list = c("geom_barlab_count", "geom_barlab_count_percent"))
 devtools::check(pkg = ".")
 ```
