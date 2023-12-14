@@ -30,8 +30,8 @@ mtcars %>%
   aes(wt, mpg) +
   geom_point() +
   geom_smooth() +
-  ggsmoothfit::stat_fit(color = "blue") + # alias as geom_smooth_fit()
-  ggsmoothfit::stat_fit(geom = "segment") # in future, wrap as geom_smooth_error()
+  ggsmoothfit:::geom_fit() + # alias as geom_smooth_fit()
+  ggsmoothfit:::geom_residuals() # in future, wrap as geom_smooth_error()
 ```
 
 
@@ -49,14 +49,18 @@ geom_smooth_predict <- function(xseq,  mapping = NULL, data = NULL, ..., method 
 )
   
 }
+```
 
+##  test it out...
+
+```{r}
+library(tidyverse)
 mtcars %>% 
   ggplot() + 
   aes(wt, mpg) +
   geom_point() +
   geom_smooth() + 
-  geom_smooth_predict(xseq = 2:3)
-
+  geom_smooth_predict(xseq = 2:3, size = 5)
 
 mtcars %>% 
   ggplot() + 
@@ -177,7 +181,7 @@ StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
 )
 ```
 
-# Step 3. Pass to stat_* functions
+# Step 3. Pass to stat_*/ geom_ functions
 
 ```{r stat_fit}
 #' Title
@@ -242,6 +246,9 @@ stat_fit <- function(mapping = NULL, data = NULL,
     )
   )
 }
+
+geom_fit <- function(...){stat_fit(color = "blue", ...)}
+geom_residuals <- function(...){stat_fit(geom = "segment", color = "darkred", ...)}
 ```
 
 
@@ -356,7 +363,7 @@ mtcars %>%
 # Step 4.b Create geom alliases and wrappers, try it out, and enjoy! Wait not working, how do I need to do this?
 
 ```{r, eval = F}
-geom_smooth_fit <- function(...){stat_fit(color = "blue",...)}   # wrap as geom_smooth_fit()
+geom_smooth_fit <- function(...){stat_fit(color = "blue", ...)}   # wrap as geom_smooth_fit()
 
 geom_smooth_residual <- function(...){stat_fit(geom = "segment", color = "darkred", ...)}   # wrap as geom_smooth_fit()
 
@@ -365,8 +372,8 @@ mtcars %>%
   aes(wt, mpg) +
   geom_point() +
   geom_smooth(alpha = .2, se = FALSE) +
-  geom_smooth_fit(color = "blue") #+  # wrap as geom_smooth_fit()
-  geom_smooth_residual(geom = "segment")
+  geom_smooth_fit(color = "blue") +  # wrap as geom_smooth_fit()
+  geom_smooth_residual()
 ```
 
 
@@ -509,7 +516,7 @@ readme2pkg::chunk_to_r(c("geom_smooth_predict",
 
 ### Managed dependencies ? ✅ 
 
-package dependancies managed, i.e. `depend::function()` in proposed functions and declared in the DESCRIPTION
+package dependencies managed, i.e. `depend::function()` in proposed functions and declared in the DESCRIPTION
 
 ### Chosen a license? ✅ 
 

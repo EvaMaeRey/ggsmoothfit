@@ -4,21 +4,3 @@ geom_smooth_predict <- function(xseq,  mapping = NULL, data = NULL, ..., method 
 )
   
 }
-
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth() + 
-  geom_smooth_predict(xseq = 2:3)
-
-
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth(method = lm) + 
-  geom_smooth_predict(xseq = 0,
-                     method = lm, 
-                     color = "red",
-                     size = 4)

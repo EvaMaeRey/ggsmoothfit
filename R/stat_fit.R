@@ -60,3 +60,6 @@ stat_fit <- function(mapping = NULL, data = NULL,
     )
   )
 }
+
+geom_fit <- function(...){stat_fit(color = "blue", ...)}
+geom_residuals <- function(...){stat_fit(geom = "segment", color = "darkred", ...)}
