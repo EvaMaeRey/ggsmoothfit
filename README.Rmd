@@ -30,8 +30,33 @@ mtcars %>%
   aes(wt, mpg) +
   geom_point() +
   geom_smooth() +
-  ggsmoothfit:::geom_fit() + # alias as geom_smooth_fit()
-  ggsmoothfit:::geom_residuals() # in future, wrap as geom_smooth_error()
+  ggsmoothfit:::geom_fit() + 
+  ggsmoothfit:::geom_residuals() 
+```
+
+
+```{r}
+mtcars %>% 
+  ggplot() + 
+  aes(wt, mpg) +
+  geom_point() +
+  geom_smooth() + 
+  ggsmoothfit:::geom_smooth_predict(xseq = 2:3, size = 5)
+
+last_plot() + 
+  ggsmoothfit:::geom_smooth_step(xseq = 2:3) +
+  NULL
+```
+
+# intercept
+
+```{r}
+mtcars %>% 
+  ggplot() + 
+  aes(wt, mpg) +
+  geom_point() +
+  geom_smooth(method = lm) + 
+  ggsmoothfit:::geom_smooth_predict(xseq = 0, size = 5, method = lm)
 ```
 
 
@@ -454,8 +479,11 @@ mtcars |>
                             length = unit(.1, "in"))) +
   labs(title = "For each 1000 lbs increase in weight...")
 
+```
 
-geom_smooth_step <- function(method = lm, formula = y ~ x,
+
+```{r geom_smooth_step}
+geom_smooth_step <- function(method = NULL, formula = y ~ x,
                               color = "darkred", xseq = 0:1){
   
   stat_smooth(method = method,
@@ -468,7 +496,10 @@ geom_smooth_step <- function(method = lm, formula = y ~ x,
               arrow = arrow(ends = c("last", "first"), 
                             length = unit(.1, "in")))
 } 
+```
 
+
+```{r}
 mtcars |>
   ggplot(aes(wt, mpg)) +
   geom_point() +
@@ -501,6 +532,7 @@ knitr::knit_code$get() |> names()
 
 ```{r}
 readme2pkg::chunk_to_r(c("geom_smooth_predict",
+                         "geom_smooth_step",
                          "compute_group_smooth_fit", 
                          "compute_group_smooth_sq_error",
                          "ggproto_objects",
