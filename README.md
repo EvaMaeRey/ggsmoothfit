@@ -1,88 +1,56 @@
 
-  - [ggsmoothfit](#ggsmoothfit)
-  - [intercept](#intercept)
-  - [Curious about implementation? Details about building these
-    functions](#curious-about-implementation-details-about-building-these-functions)
-  - [Step 00. Create alias of stat\_smooth(geom = “point”, xseq =
-    ?)](#step-00-create-alias-of-stat_smoothgeom--point-xseq--)
-      - [test it out…](#test-it-out)
-  - [Step 0. Examine ggplot2::StatSmooth$compute\_group, and a dataframe
-    that it
-    returns](#step-0-examine-ggplot2statsmoothcompute_group-and-a-dataframe-that-it-returns)
-  - [Step 1. create
-    compute\_group\_smooth\_fit](#step-1-create-compute_group_smooth_fit)
-  - [Step 1.1 test compute group](#step-11-test-compute-group)
-  - [Step 2. Pass to ggproto](#step-2-pass-to-ggproto)
-  - [Step 3. Pass to stat\_\*/ geom\_
-    functions](#step-3-pass-to-stat_-geom_-functions)
-  - [Step 4. Test in ggplot2 pipeline and
-    enjoy\!](#step-4-test-in-ggplot2-pipeline-and-enjoy)
-      - [Squared residuals](#squared-residuals)
-  - [Test with lm](#test-with-lm)
-  - [Contrast to an empty model…](#contrast-to-an-empty-model)
-  - [Step 4.b Create geom alliases and wrappers, try it out, and enjoy\!
-    Wait not working, how do I need to do
-    this?](#step-4b-create-geom-alliases-and-wrappers-try-it-out-and-enjoy-wait-not-working-how-do-i-need-to-do-this)
-  - [Don’t want to use ggsmoothfit? Here are some ways to get it done
-    with base
-    ggplot2\!](#dont-want-to-use-ggsmoothfit-here-are-some-ways-to-get-it-done-with-base-ggplot2)
-      - [Option 1. Verbal description and move
-        on…](#option-1-verbal-description-and-move-on)
-      - [Option 2: precalculate and
-        plot](#option-2-precalculate-and-plot)
-      - [Option 3: little known xseq argument and geom =
-        “point”](#option-3-little-known-xseq-argument-and-geom--point)
-  - [Rise over run viz bonus…](#rise-over-run-viz-bonus)
-  - [Part 2. Packaging and documentation 🚧
-    ✅](#part-2-packaging-and-documentation--)
-      - [minimal requirements for github package. Have
-        you:](#minimal-requirements-for-github-package-have-you)
-          - [Created files for package archetecture with
-            `devtools::create("./ggbarlabs")`
-            ✅](#created-files-for-package-archetecture-with-devtoolscreateggbarlabs-)
-          - [Moved functions R folder? ✅](#moved-functions-r-folder-)
-          - [Added roxygen skeleton? ✅](#added-roxygen-skeleton-)
-          - [Managed dependencies ? ✅](#managed-dependencies--)
-          - [Chosen a license? ✅](#chosen-a-license-)
-          - [Run `devtools::check()` and addressed errors?
-            ✅](#run-devtoolscheck-and-addressed-errors-)
-      - [Listen 🚧](#listen-)
-          - [Consulted with technical experts
-            🚧](#consulted-with-technical-experts-)
-          - [Consulted with potential users
-            🚧](#consulted-with-potential-users-)
-      - [Polish. Have you.](#polish-have-you)
-          - [Settled on examples and put them in the roxygen skeleton?
-            🚧](#settled-on-examples-and-put-them-in-the-roxygen-skeleton-)
-          - [Written formal tests of functions?
-            🚧](#written-formal-tests-of-functions-)
-          - [Sent tests in this readme to package via readme2pkg
-            🚧](#sent-tests-in-this-readme-to-package-via-readme2pkg-)
-          - [Have you worked added a description and author information
-            in the DESCRIPTION file?
-            🚧](#have-you-worked-added-a-description-and-author-information-in-the-description-file-)
-          - [Addressed *all* notes, warnings and errors.
-            🚧](#addressed-all-notes-warnings-and-errors-)
-      - [Promote](#promote)
-          - [Package website built? 🚧](#package-website-built-)
-          - [Package website deployed? 🚧](#package-website-deployed-)
-      - [Harden](#harden)
-          - [Submit to CRAN? 🚧](#submit-to-cran-)
-  - [Reports, Environment](#reports-environment)
-      - [Description file extract](#description-file-extract)
-      - [Environment](#environment)
-      - [`devtools::check()` report](#devtoolscheck-report)
+- [ggsmoothfit](#ggsmoothfit)
+- [intercept](#intercept)
+- [Let’s build this functionality](#lets-build-this-functionality)
+- [Step 00. Create alias of stat_smooth(geom = “point”, xseq = ?) that
+  puts the user input xseq at the
+  fore](#step-00-create-alias-of-stat_smoothgeom--point-xseq---that-puts-the-user-input-xseq-at-the-fore)
+  - [test it out…](#test-it-out)
+- [Step 0. Examine ggplot2::StatSmooth\$compute_group, and a dataframe
+  that it
+  returns](#step-0-examine-ggplot2statsmoothcompute_group-and-a-dataframe-that-it-returns)
+- [Step 1. create
+  compute_group_smooth_fit](#step-1-create-compute_group_smooth_fit)
+- [Step 1.1 test compute group](#step-11-test-compute-group)
+- [Step 2. Pass to ggproto](#step-2-pass-to-ggproto)
+- [Test Stat](#test-stat)
+- [Step 3. Pass to stat\_\*/ geom\_
+  functions](#step-3-pass-to-stat_-geom_-functions)
+- [And with lm](#and-with-lm)
+- [Contrast to an empty model…](#contrast-to-an-empty-model)
+- [Via @friendly ggplot2 extenders ggsprings discussion and springs
+  extension case
+  study](#via-friendly-ggplot2-extenders-ggsprings-discussion-and-springs-extension-case-study)
+- [Part 2. Packaging and documentation 🚧
+  ✅](#part-2-packaging-and-documentation--)
+  - [minimal requirements for github package. Have
+    you:](#minimal-requirements-for-github-package-have-you)
+    - [Created files for package archetecture with
+      `devtools::create("./ggbarlabs")`
+      ✅](#created-files-for-package-archetecture-with-devtoolscreateggbarlabs-)
+    - [Moved functions R folder? ✅](#moved-functions-r-folder-)
+    - [Added roxygen skeleton? ✅](#added-roxygen-skeleton-)
+    - [Managed dependencies ? ✅](#managed-dependencies--)
+    - [Chosen a license? ✅](#chosen-a-license-)
+  - [`devtools::check()` report](#devtoolscheck-report)
+- [Don’t want to use ggsmoothfit? Here are some ways to get it done with
+  base
+  ggplot2!](#dont-want-to-use-ggsmoothfit-here-are-some-ways-to-get-it-done-with-base-ggplot2)
+  - [Option 1. Verbal description and move
+    on…](#option-1-verbal-description-and-move-on)
+  - [Option 2: precalculate and plot](#option-2-precalculate-and-plot)
+  - [Option 3: little known xseq argument and geom =
+    “point”](#option-3-little-known-xseq-argument-and-geom--point)
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
 # ggsmoothfit
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
-{ggsmoothfit} lets you visualize model fitted values and residuals
-easily\!
+The goal of {ggsmoothfit} is to let you visualize model fitted values
+and residuals easily!
 
 ``` r
 library(tidyverse, warn.conflicts = F)
@@ -94,12 +62,7 @@ mtcars %>%
   geom_smooth() +
   ggsmoothfit:::geom_fit() + 
   ggsmoothfit:::geom_residuals() 
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
-
-![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 mtcars %>% 
@@ -108,23 +71,11 @@ mtcars %>%
   geom_point() +
   geom_smooth() + 
   ggsmoothfit:::geom_smooth_predict(xseq = 2:3, size = 5)
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
-
-``` r
 
 last_plot() + 
   ggsmoothfit:::geom_smooth_step(xseq = 2:3) +
   NULL
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess'
 ```
-
-![](README_files/figure-gfm/unnamed-chunk-3-2.png)<!-- -->
 
 # intercept
 
@@ -135,17 +86,13 @@ mtcars %>%
   geom_point() +
   geom_smooth(method = lm) + 
   ggsmoothfit:::geom_smooth_predict(xseq = 0, size = 5, method = lm)
-#> `geom_smooth()` using formula = 'y ~ x'
-#> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+# Let’s build this functionality
 
-# Curious about implementation? Details about building these functions
+# Step 00. Create alias of stat_smooth(geom = “point”, xseq = ?) that puts the user input xseq at the fore
 
-# Step 00. Create alias of stat\_smooth(geom = “point”, xseq = ?)
-
-Make it a bit easier for the user to stat\_smooth(geom = “point”, xseq =
+Make it a bit easier for the user to stat_smooth(geom = “point”, xseq =
 ?)
 
 ``` r
@@ -171,7 +118,7 @@ mtcars %>%
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
 
 ``` r
 
@@ -188,9 +135,9 @@ mtcars %>%
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
-# Step 0. Examine ggplot2::StatSmooth$compute\_group, and a dataframe that it returns
+# Step 0. Examine ggplot2::StatSmooth\$compute_group, and a dataframe that it returns
 
 Key take away: this function allows you to set values of x with the
 *xseq argument*. Although the default is to create an evenly spaced
@@ -224,10 +171,10 @@ mtcars %>%
 #> 7 5.424000  8.296712  5.547468 11.04596 1.3461693          NA
 ```
 
-# Step 1. create compute\_group\_smooth\_fit
+# Step 1. create compute_group_smooth_fit
 
-Here we’ll piggy back on StatSmooth$compute\_group, to create a
-function, compute\_group\_smooth\_fit. We ask that function to compute
+Here we’ll piggy back on StatSmooth\$compute_group, to create a
+function, compute_group_smooth_fit. We ask that function to compute
 predictions at the values of x observed in our data set. We also
 preserve the values of y (as yend) so that we can draw in the residual
 error.
@@ -260,16 +207,34 @@ compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL
 }
 ```
 
-We’ll also create compute\_group\_smooth\_sq\_error, further
-piggybacking, this time on the function we just build. This creates the
-ymin, ymax, xmin and xmax columns needed to show the *squared* error.
-Initially, I’d included this computation above, but the plot results can
-be bad, as the ‘flags’ that come off of the residuals effect the plot
-spacing even when they aren’t used. Preferring to avoid this
-side-effect, we create two functions (and later two ggproto objects).
-Note too that xmax is computed in the units of y, and initial plotting
-can yield squares that do not look like squares. Standardizing both
-variables, with coord\_equal will get us to squares.
+``` r
+mtcars %>% 
+  slice(1:10) %>% 
+  rename(x = wt, y = mpg) %>% 
+  compute_group_smooth_fit(method = lm, formula = y ~ x)
+#>        x        y flipped_aes x_obs y_obs  xend yend
+#> 1  2.620 22.54689          NA 2.620  21.0 2.620 21.0
+#> 2  2.875 21.45416          NA 2.875  21.0 2.875 21.0
+#> 3  2.320 23.83246          NA 2.320  22.8 2.320 22.8
+#> 4  3.215 19.99719          NA 3.215  21.4 3.215 21.4
+#> 5  3.440 19.03301          NA 3.440  18.7 3.440 18.7
+#> 6  3.460 18.94731          NA 3.460  18.1 3.460 18.1
+#> 7  3.570 18.47593          NA 3.570  14.3 3.570 14.3
+#> 8  3.190 20.10432          NA 3.190  24.4 3.190 24.4
+#> 9  3.150 20.27573          NA 3.150  22.8 3.150 22.8
+#> 10 3.440 19.03301          NA 3.440  19.2 3.440 19.2
+```
+
+We’ll also create compute_group_smooth_sq_error, further piggybacking,
+this time on the function we just build. This creates the ymin, ymax,
+xmin and xmax columns needed to show the *squared* error. Initially, I’d
+included this computation above, but the plot results can be bad, as the
+‘flags’ that come off of the residuals effect the plot spacing even when
+they aren’t used. Preferring to avoid this side-effect, we create two
+functions (and later two ggproto objects). Note too that xmax is
+computed in the units of y, and initial plotting can yield squares that
+do not look like squares. Standardizing both variables, with coord_equal
+will get us to squares.
 
 ``` r
 compute_group_smooth_sq_error <- function(data, scales, method = NULL, formula = NULL,
@@ -340,160 +305,91 @@ mtcars %>%
 # Step 2. Pass to ggproto
 
 ``` r
-StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", ggplot2::Stat,
-  setup_params = ggplot2::StatSmooth$setup_params,
-  extra_params = c("na.rm", "orientation"),
-  compute_group = compute_group_smooth_fit,
-  dropped_aes = c("weight"),
-  required_aes = c("x", "y"),
-  default_aes = ggplot2::aes(xend = after_stat(x_obs), yend = after_stat(y_obs))
+StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", 
+                                  ggplot2::StatSmooth,
+                                  compute_group = compute_group_smooth_fit,
+                                  default_aes = ggplot2::aes(xend = after_stat(x_obs), 
+                                                             yend = after_stat(y_obs)))
 
-)
-
-StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", ggplot2::Stat,
-  setup_params = ggplot2::StatSmooth$setup_params,
-  extra_params = c("na.rm", "orientation"),
-  compute_group = compute_group_smooth_sq_error,
-  dropped_aes = c("weight"),
-  required_aes = c("x", "y")
-)
+StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", 
+                                      ggplot2::StatSmooth,
+                                      compute_group = compute_group_smooth_sq_error)
 ```
+
+# Test Stat
+
+``` r
+mtcars %>% 
+  ggplot() + 
+  aes(x = wt, y = mpg) + 
+  geom_point() + 
+  geom_smooth() + 
+  geom_point(stat = StatSmoothFit, color = "blue") + 
+  geom_segment(stat = StatSmoothFit, color = "blue")
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 # Step 3. Pass to stat\_\*/ geom\_ functions
 
 ``` r
-#' Title
-#'
-#' @param mapping 
-#' @param data 
-#' @param geom 
-#' @param position 
-#' @param ... 
-#' @param method 
-#' @param formula 
-#' @param se 
-#' @param n 
-#' @param span 
-#' @param fullrange 
-#' @param level 
-#' @param method.args 
-#' @param na.rm 
-#' @param orientation 
-#' @param show.legend 
-#' @param inherit.aes 
-#'
-#' @return
-#' @export
-#'
-#' @examples
-stat_fit <- function(mapping = NULL, data = NULL,
-            geom = "point", position = "identity",
-            ...,
-            method = NULL,
-            formula = NULL,
-            se = TRUE,
-            n = 80,
-            span = 0.75,
-            fullrange = FALSE,
-            level = 0.95,
-            method.args = list(),
-            na.rm = FALSE,
-            orientation = NA,
-            show.legend = NA,
-            inherit.aes = TRUE) {
-  ggplot2::layer(
-    data = data,
-    mapping = mapping,
-    stat = StatSmoothFit,
-    geom = geom,
-    position = position,
-    show.legend = show.legend,
-    inherit.aes = inherit.aes,
-    params = rlang::list2(
-      method = method,
-      formula = formula,
-      se = se,
-      n = n,
-      fullrange = fullrange,
-      level = level,
-      na.rm = na.rm,
-      orientation = orientation,
-      method.args = method.args,
-      span = span,
-      ...
-    )
-  )
+library(statexpress)
+
+stat_smooth_fit <- function(geom = "point", ...){
+  
+  qlayer(geom = geom,
+         stat = StatSmoothFit, ...)
+  
 }
 
-geom_fit <- function(...){stat_fit(color = "blue", ...)}
-geom_residuals <- function(...){stat_fit(geom = "segment", color = "darkred", ...)}
-```
 
-``` r
-stat_errorsq <- function(mapping = NULL, data = NULL,
-                        geom = "rect", position = "identity",
-                        ...,
-                        method = NULL,
-                        formula = NULL,
-                        se = TRUE,
-                        n = 80,
-                        span = 0.75,
-                        fullrange = FALSE,
-                        level = 0.95,
-                        method.args = list(),
-                        na.rm = FALSE,
-                        orientation = NA,
-                        show.legend = NA,
-                        inherit.aes = TRUE) {
-  ggplot2::layer(
-    data = data,
-    mapping = mapping,
-    stat = StatSmoothErrorSq,
-    geom = geom,
-    position = position,
-    show.legend = show.legend,
-    inherit.aes = inherit.aes,
-    params = rlang::list2(
-      method = method,
-      formula = formula,
-      se = se,
-      n = n,
-      fullrange = fullrange,
-      level = level,
-      na.rm = na.rm,
-      orientation = orientation,
-      method.args = method.args,
-      span = span,
-      ...
-    )
-  )
+geom_smooth_fit <- function(...){
+  
+  qlayer(geom = qproto_update(GeomPoint, aes(colour = from_theme(accent))),
+         stat = StatSmoothFit, ...)
+  
 }
-```
 
-# Step 4. Test in ggplot2 pipeline and enjoy\!
+geom_smooth_residuals <- function(...){
+  
+  qlayer(geom = qproto_update(GeomSegment, aes(colour = from_theme(accent))),
+         stat = StatSmoothFit, ...)
+  
+}
 
-``` r
 mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() +
-  geom_smooth(alpha = .2, se = FALSE) +
-  stat_fit(color = "blue") +  # wrap as geom_smooth_fit()
-  stat_fit(geom = "segment") # geom_smooth_error()
+  ggplot() + 
+  aes(x = wt, y = mpg) + 
+  geom_point() + 
+  geom_smooth() + 
+  geom_smooth_fit() + 
+  geom_smooth_residuals() + 
+  geom_smooth_predict(xseq = 3, size = 8)
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/test-1.png)<!-- -->
-
-## Squared residuals
-
-For best results, use standardized x, y and coord\_equal() as shown
-below
+![](README_files/figure-gfm/stat_fit-1.png)<!-- -->
 
 ``` r
-stdz <- function(x){
+geom_squared_residuals <- function(...){
+  
+  qlayer(geom = qproto_update(GeomRect, 
+                              aes(fill = from_theme(accent), 
+                                  alpha = .2,
+                                  color = from_theme(accent),
+                                  linewidth = from_theme(linewidth*.2))),
+         stat = StatSmoothErrorSq,
+         ...)
+  
+}
+
+standardize <- function(x){
   
   var_mean <- mean(x) 
   var_sd <- sd(x)
@@ -501,10 +397,30 @@ stdz <- function(x){
   (x-var_mean)/var_sd
   
 }
+```
+
+For best results, use standardized x, y and coord_equal() as shown below
+
+``` r
+mtcars %>% 
+  ggplot() + 
+  aes(x = wt, y = mpg) + 
+  geom_point() + 
+  geom_smooth() + 
+  geom_smooth_fit() + 
+  geom_smooth_residuals() +
+  geom_squared_residuals()
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+
+``` r
 
 last_plot() + 
-  stat_errorsq(geom = "rect", alpha = .1)  + # geom_smooth_error_sq() +
-  aes(stdz(wt), stdz(mpg)) + 
   coord_equal()
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
@@ -512,9 +428,21 @@ last_plot() +
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/squaring-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
 
-# Test with lm
+``` r
+
+last_plot() +
+  aes(standardize(wt), standardize(mpg)) 
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-7-3.png)<!-- -->
+
+# And with lm
 
 ``` r
 mtcars %>% 
@@ -522,8 +450,10 @@ mtcars %>%
   aes(wt, mpg) + 
   geom_point() +
   geom_smooth(alpha = .2, se = FALSE, method = lm) + 
-  stat_fit(geom = "point", color = "blue", method = lm) + # wrap as geom_smooth_fit()
-  stat_fit(geom = "segment", method = lm)
+  geom_smooth_fit(method = lm) + # wrap as geom_smooth_fit()
+  geom_smooth_residuals(method = lm) + 
+  geom_smooth_predict(xseq = 0, method = lm)
+#> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
@@ -533,131 +463,21 @@ mtcars %>%
 
 # Contrast to an empty model…
 
-  - show mean of y, residuals and squares (variance)
-
-<!-- end list -->
+- show mean of y, residuals and squares (variance)
 
 ``` r
 mtcars %>% 
   ggplot() +
-  aes(stdz(wt), stdz(mpg)) + 
+  aes(standardize(wt), standardize(mpg)) + 
   geom_point() +
-  geom_smooth(alpha = .2, se = FALSE, method = lm,  formula = y ~ 1) + 
-  stat_fit(geom = "point", color = "blue", method = lm, formula = y ~ 1) + # wrap as geom_smooth_fit()
-  stat_fit(geom = "segment", method = lm, formula = y ~ 1) + 
-  stat_errorsq(geom = "rect", alpha = .1, method = lm, formula = y ~ 1) + 
+  geom_smooth(method = lm, formula = y ~ 1) + 
+  geom_smooth_fit(method = lm, formula = y ~ 1) + # wrap as geom_smooth_fit()
+  geom_smooth_residuals(method = lm, formula = y ~ 1) + 
+  geom_squared_residuals(method = lm, formula = y ~ 1) + 
   coord_equal()
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
-
-# Step 4.b Create geom alliases and wrappers, try it out, and enjoy\! Wait not working, how do I need to do this?
-
-``` r
-geom_smooth_fit <- function(...){stat_fit(color = "blue", ...)}   # wrap as geom_smooth_fit()
-
-geom_smooth_residual <- function(...){stat_fit(geom = "segment", color = "darkred", ...)}   # wrap as geom_smooth_fit()
-
-mtcars %>%
-  ggplot() +
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth(alpha = .2, se = FALSE) +
-  geom_smooth_fit(color = "blue") +  # wrap as geom_smooth_fit()
-  geom_smooth_residual()
-```
-
-# Don’t want to use ggsmoothfit? Here are some ways to get it done with base ggplot2\!
-
-## Option 1. Verbal description and move on…
-
-“image a line that drops down from the observation to the model line”
-use vanilla geom\_smooth
-
-``` r
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() + 
-  geom_smooth()
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/stat-smooth-1.png)<!-- -->
-
-## Option 2: precalculate and plot
-
-\[stack overflow example goes here.\]
-
-## Option 3: little known xseq argument and geom = “point”
-
-First a bit of under-the-hood thinking about geom\_smooth/stat\_smooth.
-
-``` r
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_smooth(n = 12) +
-  stat_smooth(geom = "point", 
-              color = "blue", 
-              n = 12)
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
-
-Specify xseq… Almost surely new to you (and probably more interesting to
-stats instructors): predicting at observed values of x.. Warning, this
-is off label..
-
-xseq is not advertised, but possibly of interest..
-<https://ggplot2.tidyverse.org/reference/geom_smooth.html>
-
-``` r
-# fit where the support is in the data... 
-mtcars %>% 
-  ggplot() +
-  aes(wt, mpg) + 
-  geom_point() +
-  geom_smooth() + 
-  stat_smooth(geom = "point",  color = "blue", # fitted values
-              xseq = mtcars$wt) +
-  stat_smooth(geom = "segment", color = "darkred", # residuals
-              xseq = mtcars$wt,
-              xend = mtcars$wt,
-              yend = mtcars$mpg)
-```
-
-![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
-
-# Rise over run viz bonus…
-
-``` r
-mtcars |>
-  ggplot(aes(wt, mpg)) +
-  geom_point() +
-  geom_smooth(method = lm) +
-  stat_smooth(method = lm, 
-              geom = 'point',
-              xseq = c(2,3), 
-              size = 3, 
-              color = "blue") +
-  stat_smooth(method = lm,
-              geom = "segment", # draw fitted values as points
-              color = "darkred",
-              xseq = c(2,3), # 'from', 'to' value pair
-              aes(yend = after_stat(y[1]), # 'from' value of y
-                  xend = 3), # 'to' value of x
-              arrow = arrow(ends = c("last", "first"), 
-                            length = unit(.1, "in"))) +
-  labs(title = "For each 1000 lbs increase in weight...")
-#> `geom_smooth()` using formula = 'y ~ x'
-#> `geom_smooth()` using formula = 'y ~ x'
-#> `geom_smooth()` using formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
 
 ``` r
 geom_smooth_step <- function(method = NULL, formula = y ~ x,
@@ -680,12 +500,161 @@ mtcars |>
   ggplot(aes(wt, mpg)) +
   geom_point() +
   geom_smooth(method = lm) +
-  geom_smooth_step(xseq = 2:3)
+  geom_smooth_step(method = lm, xseq = 2:3)
 #> `geom_smooth()` using formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+# Via @friendly [ggplot2 extenders ggsprings discussion](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/83) and [springs extension case study](https://ggplot2-book.org/ext-springs.html)
+
+``` r
+library(ggplot2)
+
+create_spring <- function(x, 
+                          y, 
+                          xend, 
+                          yend, 
+                          diameter = 1, 
+                          tension = 0.75, 
+                          n = 50) {
+  
+  # Validate the input arguments
+  if (tension <= 0) {
+    rlang::abort("`tension` must be larger than zero.")
+  }
+  if (diameter == 0) {
+    rlang::abort("`diameter` can not be zero.")
+  }
+  if (n == 0) {
+    rlang::abort("`n` must be greater than zero.")
+  }
+  
+  # Calculate the direct length of the spring path
+  length <- sqrt((x - xend)^2 + (y - yend)^2)
+  
+  # Calculate the number of revolutions and points we need
+  n_revolutions <- length / (diameter * tension)
+  n_points <- n * n_revolutions
+  
+  # Calculate the sequence of radians and the x and y offset values
+  radians <- seq(0, n_revolutions * 2 * pi, length.out = n_points)
+  x <- seq(x, xend, length.out = n_points)
+  y <- seq(y, yend, length.out = n_points)
+  
+  # Create and return the transformed data frame
+  data.frame(
+    x = cos(radians) * diameter/2 + x,
+    y = sin(radians) * diameter/2 + y
+  )
+}
+
+GeomSmoothSpring <- ggproto("GeomSmoothSpring", Geom,
+  
+  # Ensure that each row has a unique group id
+  setup_data = function(data, params) {
+    if (is.null(data$group)) {
+      data$group <- seq_len(nrow(data))
+    }
+    if (anyDuplicated(data$group)) {
+      data$group <- paste(data$group, seq_len(nrow(data)), sep = "-")
+    }
+    data
+  },
+  
+  # Transform the data inside the draw_panel() method
+  draw_panel = function(data, 
+                        panel_params, 
+                        coord, 
+                        n = 50, 
+                        arrow = NULL,
+                        lineend = "butt", 
+                        linejoin = "round", 
+                        linemitre = 10,
+                        na.rm = FALSE) {
+    
+    # Transform the input data to specify the spring paths
+    cols_to_keep <- setdiff(names(data), c("x", "y", "xend", "yend"))
+    springs <- lapply(seq_len(nrow(data)), function(i) {
+      spring_path <- create_spring(
+        data$x[i], 
+        data$y[i], 
+        data$xend[i], 
+        data$yend[i], 
+        diameter = .025 * abs(min(data$x)-max(data$x)), 
+        tension = 1 * abs(data$y[i]-data$yend[i]), 
+        n
+      )
+      cbind(spring_path, unclass(data[i, cols_to_keep]))
+    })
+    springs <- do.call(rbind, springs)
+    
+    # Use the draw_panel() method from GeomPath to do the drawing
+    GeomPath$draw_panel(
+      data = springs, 
+      panel_params = panel_params, 
+      coord = coord, 
+      arrow = arrow, 
+      lineend = lineend, 
+      linejoin = linejoin, 
+      linemitre = linemitre, 
+      na.rm = na.rm
+    )
+  },
+  
+  # Specify the default and required aesthetics
+  required_aes = c("x", "y", "xend", "yend"),
+  default_aes = aes(
+    colour = from_theme(accent), 
+    linewidth = 0.5, 
+    linetype = 1L, 
+    alpha = NA
+  )
+)
+
+
+anscombe |> 
+  ggplot() + 
+  aes(x = x1, y = y1) + 
+  geom_point() + 
+  geom_smooth(method = lm) +
+  stat_smooth_fit(geom = GeomSmoothSpring, method = lm) + 
+  ggchalkboard:::theme_blackboard()
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+
+``` r
+
+last_plot() + 
+  aes(x = x2, y = y2)
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+
+``` r
+
+last_plot() + 
+  aes(x = x3, y = y3)
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-11-3.png)<!-- -->
+
+``` r
+
+last_plot() + 
+  aes(x = x4, y = y4)
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-11-4.png)<!-- -->
 
 # Part 2. Packaging and documentation 🚧 ✅
 
@@ -697,32 +666,36 @@ mtcars |>
 
 ``` r
 knitr::knit_code$get() |> names()
-#>  [1] "unnamed-chunk-1"               "unnamed-chunk-2"              
-#>  [3] "unnamed-chunk-3"               "unnamed-chunk-4"              
-#>  [5] "geom_smooth_predict"           "unnamed-chunk-5"              
-#>  [7] "unnamed-chunk-6"               "compute_group_smooth_fit"     
-#>  [9] "compute_group_smooth_sq_error" "unnamed-chunk-7"              
-#> [11] "ggproto_objects"               "stat_fit"                     
-#> [13] "stat_errorsq"                  "test"                         
-#> [15] "squaring"                      "unnamed-chunk-8"              
-#> [17] "unnamed-chunk-9"               "unnamed-chunk-10"             
-#> [19] "stat-smooth"                   "unnamed-chunk-11"             
-#> [21] "unnamed-chunk-12"              "unnamed-chunk-13"             
-#> [23] "geom_smooth_step"              "unnamed-chunk-14"             
-#> [25] "unnamed-chunk-15"              "unnamed-chunk-16"             
-#> [27] "unnamed-chunk-17"              "unnamed-chunk-18"             
-#> [29] "unnamed-chunk-19"              "unnamed-chunk-20"             
-#> [31] "unnamed-chunk-21"
+#>  [1] "unnamed-chunk-1"               "geom_smooth_predict"          
+#>  [3] "unnamed-chunk-2"               "unnamed-chunk-3"              
+#>  [5] "compute_group_smooth_fit"      "unnamed-chunk-4"              
+#>  [7] "compute_group_smooth_sq_error" "unnamed-chunk-5"              
+#>  [9] "ggproto_objects"               "unnamed-chunk-6"              
+#> [11] "stat_fit"                      "stat_errorsq"                 
+#> [13] "unnamed-chunk-7"               "unnamed-chunk-8"              
+#> [15] "unnamed-chunk-9"               "geom_smooth_step"             
+#> [17] "unnamed-chunk-10"              "unnamed-chunk-11"             
+#> [19] "unnamed-chunk-12"              "unnamed-chunk-13"             
+#> [21] "unnamed-chunk-14"              "unnamed-chunk-15"             
+#> [23] "stat-smooth"                   "unnamed-chunk-16"             
+#> [25] "unnamed-chunk-17"
 ```
 
 ``` r
-readme2pkg::chunk_to_r(c("geom_smooth_predict",
+knitrExtra::chunk_to_dir(c("geom_smooth_predict",
                          "geom_smooth_step",
                          "compute_group_smooth_fit", 
                          "compute_group_smooth_sq_error",
                          "ggproto_objects",
                          "stat_fit", 
                          "stat_errorsq"))
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
+#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
 ```
 
 ### Added roxygen skeleton? ✅
@@ -741,65 +714,74 @@ usethis::use_package("ggplot2")
 usethis::use_mit_license()
 ```
 
-### Run `devtools::check()` and addressed errors? ✅
-
-## Listen 🚧
-
-### Consulted with technical experts 🚧
-
-### Consulted with potential users 🚧
-
-Getting started with that\!
-
-## Polish. Have you.
-
-### Settled on examples and put them in the roxygen skeleton? 🚧
-
-### Written formal tests of functions? 🚧
-
-### Sent tests in this readme to package via readme2pkg 🚧
-
-That would look like this…
-
-    chunk_to_tests_testthat("test_geom_barlab_count")
-
-### Have you worked added a description and author information in the DESCRIPTION file? 🚧
-
-### Addressed *all* notes, warnings and errors. 🚧
-
-## Promote
-
-### Package website built? 🚧
-
-### Package website deployed? 🚧
-
-## Harden
-
-### Submit to CRAN? 🚧
-
-# Reports, Environment
-
-## Description file extract
-
-## Environment
-
-Here I just want to print the packages and the versions
-
-``` r
-all <- sessionInfo() |> print() |> capture.output()
-all[11:17]
-#> [1] ""                                                                         
-#> [2] "attached base packages:"                                                  
-#> [3] "[1] stats     graphics  grDevices utils     datasets  methods   base     "
-#> [4] ""                                                                         
-#> [5] "other attached packages:"                                                 
-#> [6] " [1] ggsmoothfit_0.0.0.9000 lubridate_1.9.2        forcats_1.0.0         "
-#> [7] " [4] stringr_1.5.0          dplyr_1.1.0            purrr_1.0.1           "
-```
-
 ## `devtools::check()` report
 
 ``` r
 # rm(list = c("geom_barlab_count", "geom_barlab_count_percent"))
 devtools::check(pkg = ".")
 ```
+
+------------------------------------------------------------------------
+
+# Don’t want to use ggsmoothfit? Here are some ways to get it done with base ggplot2!
+
+## Option 1. Verbal description and move on…
+
+“image a line that drops down from the observation to the model line”
+use vanilla geom_smooth
+
+``` r
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() + 
+  geom_smooth()
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/stat-smooth-1.png)<!-- -->
+
+## Option 2: precalculate and plot
+
+\[stack overflow example goes here.\]
+
+## Option 3: little known xseq argument and geom = “point”
+
+First a bit of under-the-hood thinking about geom_smooth/stat_smooth.
+
+``` r
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_smooth(n = 12) +
+  stat_smooth(geom = "point", 
+              color = "blue", 
+              n = 12)
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+
+Specify xseq… Almost surely new to you (and probably more interesting to
+stats instructors): predicting at observed values of x..
+
+xseq has only recently been advertised, but possibly of interest..
+<https://ggplot2.tidyverse.org/reference/geom_smooth.html>
+
+``` r
+# fit where the support is in the data... 
+mtcars %>% 
+  ggplot() +
+  aes(wt, mpg) + 
+  geom_point() +
+  geom_smooth() + 
+  stat_smooth(geom = "point",  color = "blue", # fitted values
+              xseq = mtcars$wt) +
+  stat_smooth(geom = "segment", color = "darkred", # residuals
+              xseq = mtcars$wt,
+              xend = mtcars$wt,
+              yend = mtcars$mpg)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
