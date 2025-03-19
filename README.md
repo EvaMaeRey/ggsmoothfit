@@ -1,11 +1,6 @@
 
 - [ggsmoothfit](#ggsmoothfit)
-- [intercept](#intercept)
 - [Let’s build this functionality](#lets-build-this-functionality)
-- [Step 00. Create alias of stat_smooth(geom = “point”, xseq = ?) that
-  puts the user input xseq at the
-  fore](#step-00-create-alias-of-stat_smoothgeom--point-xseq---that-puts-the-user-input-xseq-at-the-fore)
-  - [test it out…](#test-it-out)
 - [Step 0. Examine ggplot2::StatSmooth\$compute_group, and a dataframe
   that it
   returns](#step-0-examine-ggplot2statsmoothcompute_group-and-a-dataframe-that-it-returns)
@@ -61,81 +56,13 @@ mtcars %>%
   geom_point() +
   geom_smooth() +
   ggsmoothfit:::geom_fit() + 
-  ggsmoothfit:::geom_residuals() 
-```
-
-``` r
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth() + 
-  ggsmoothfit:::geom_smooth_predict(xseq = 2:3, size = 5)
-
-last_plot() + 
-  ggsmoothfit:::geom_smooth_step(xseq = 2:3) +
-  NULL
-```
-
-# intercept
-
-``` r
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth(method = lm) + 
-  ggsmoothfit:::geom_smooth_predict(xseq = 0, size = 5, method = lm)
+  ggsmoothfit:::geom_residuals() + 
+  ggsmoothfit:::geom_smooth_fit(xseq = 2:3, size = 5) +
+  ggsmoothfit:::geom_smooth_step(xseq = 2:3) + 
+  ggsmoothfit:::geom_smooth_fit(xseq = 0, size = 5, method = lm)
 ```
 
 # Let’s build this functionality
-
-# Step 00. Create alias of stat_smooth(geom = “point”, xseq = ?) that puts the user input xseq at the fore
-
-Make it a bit easier for the user to stat_smooth(geom = “point”, xseq =
-?)
-
-``` r
-geom_smooth_predict <- function(xseq,  mapping = NULL, data = NULL, ..., method = NULL, formula = NULL, se = TRUE, method.args = list(), na.rm = FALSE, orientation = NA, show.legend = NA, inherit.aes = TRUE, color = "blue"){
-  
-  stat_smooth( mapping = mapping, data = data, geom = "point", position = "identity", xseq = xseq,  ..., method = method, formula = formula, se = se, method.args = list(), na.rm = na.rm, orientation = orientation, show.legend = show.legend, inherit.aes = inherit.aes, color = color
-)
-  
-}
-```
-
-## test it out…
-
-``` r
-library(tidyverse)
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth() + 
-  geom_smooth_predict(xseq = 2:3, size = 5)
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-#> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
-
-``` r
-
-mtcars %>% 
-  ggplot() + 
-  aes(wt, mpg) +
-  geom_point() +
-  geom_smooth(method = lm) + 
-  geom_smooth_predict(xseq = 0,
-                     method = lm, 
-                     color = "red",
-                     size = 4)
-#> `geom_smooth()` using formula = 'y ~ x'
-#> `geom_smooth()` using formula = 'y ~ x'
-```
-
-![](README_files/figure-gfm/unnamed-chunk-2-2.png)<!-- -->
 
 # Step 0. Examine ggplot2::StatSmooth\$compute_group, and a dataframe that it returns
 
@@ -183,26 +110,31 @@ xend and yend are computed to draw the segments visualizing the error.
 
 ``` r
 compute_group_smooth_fit <- function(data, scales, method = NULL, formula = NULL,
-                           se = TRUE, n = 80, span = 0.75, fullrange = FALSE,
+                           xseq = NULL,
                            level = 0.95, method.args = list(),
                            na.rm = FALSE, flipped_aes = NA){
   
-  
-  out <- ggplot2::StatSmooth$compute_group(data = data, scales = scales, 
+  if(is.null(xseq)){ # predictions based on observations 
+
+  ggplot2::StatSmooth$compute_group(data = data, scales = scales, 
                        method = method, formula = formula, 
-                       se = FALSE, n= n, span = span, fullrange = fullrange,
+                       se = FALSE, n= 80, span = 0.75, fullrange = FALSE,
                        xseq = data$x, 
                        level = .95, method.args = method.args, 
-                       na.rm = na.rm, flipped_aes = flipped_aes) 
+                       na.rm = na.rm, flipped_aes = flipped_aes) |>
+      dplyr::mutate(xend = data$x,
+                    yend = data$y)
   
-
-  out$x_obs <-  data$x
-  out$y_obs <- data$y
-  
-  out$xend <- out$x_obs
-  out$yend <- out$y_obs
-  
-  out
+  }else{  # predict specific input values
+    
+  ggplot2::StatSmooth$compute_group(data = data, scales = scales, 
+                       method = method, formula = formula, 
+                       se = FALSE, n= 80, span = 0.75, fullrange = FALSE,
+                       xseq = xseq, 
+                       level = .95, method.args = method.args, 
+                       na.rm = na.rm, flipped_aes = flipped_aes)   
+    
+  }
   
 }
 ```
@@ -212,17 +144,17 @@ mtcars %>%
   slice(1:10) %>% 
   rename(x = wt, y = mpg) %>% 
   compute_group_smooth_fit(method = lm, formula = y ~ x)
-#>        x        y flipped_aes x_obs y_obs  xend yend
-#> 1  2.620 22.54689          NA 2.620  21.0 2.620 21.0
-#> 2  2.875 21.45416          NA 2.875  21.0 2.875 21.0
-#> 3  2.320 23.83246          NA 2.320  22.8 2.320 22.8
-#> 4  3.215 19.99719          NA 3.215  21.4 3.215 21.4
-#> 5  3.440 19.03301          NA 3.440  18.7 3.440 18.7
-#> 6  3.460 18.94731          NA 3.460  18.1 3.460 18.1
-#> 7  3.570 18.47593          NA 3.570  14.3 3.570 14.3
-#> 8  3.190 20.10432          NA 3.190  24.4 3.190 24.4
-#> 9  3.150 20.27573          NA 3.150  22.8 3.150 22.8
-#> 10 3.440 19.03301          NA 3.440  19.2 3.440 19.2
+#>        x        y flipped_aes  xend yend
+#> 1  2.620 22.54689          NA 2.620 21.0
+#> 2  2.875 21.45416          NA 2.875 21.0
+#> 3  2.320 23.83246          NA 2.320 22.8
+#> 4  3.215 19.99719          NA 3.215 21.4
+#> 5  3.440 19.03301          NA 3.440 18.7
+#> 6  3.460 18.94731          NA 3.460 18.1
+#> 7  3.570 18.47593          NA 3.570 14.3
+#> 8  3.190 20.10432          NA 3.190 24.4
+#> 9  3.150 20.27573          NA 3.150 22.8
+#> 10 3.440 19.03301          NA 3.440 19.2
 ```
 
 We’ll also create compute_group_smooth_sq_error, further piggybacking,
@@ -237,14 +169,14 @@ do not look like squares. Standardizing both variables, with coord_equal
 will get us to squares.
 
 ``` r
-compute_group_smooth_sq_error <- function(data, scales, method = NULL, formula = NULL,
-                           se = TRUE, n = 80, span = 0.75, fullrange = FALSE,
+compute_group_smooth_sq_error <- function(data, scales, method = NULL, 
+                                          formula = NULL,
+                          
                            level = 0.95, method.args = list(),
                            na.rm = FALSE, flipped_aes = NA){
   
  compute_group_smooth_fit(data = data, scales = scales, 
                        method = method, formula = formula, 
-                       se = FALSE, n= n, span = span, fullrange = fullrange,
                        level = .95, method.args = method.args, 
                        na.rm = na.rm, flipped_aes = flipped_aes) %>% 
     dplyr::mutate(ymin = y,
@@ -262,44 +194,33 @@ mtcars %>%
   slice(1:10) %>% 
   rename(x = wt, y = mpg) %>% 
   compute_group_smooth_fit(method = lm, formula = y ~ x)
-#>        x        y flipped_aes x_obs y_obs  xend yend
-#> 1  2.620 22.54689          NA 2.620  21.0 2.620 21.0
-#> 2  2.875 21.45416          NA 2.875  21.0 2.875 21.0
-#> 3  2.320 23.83246          NA 2.320  22.8 2.320 22.8
-#> 4  3.215 19.99719          NA 3.215  21.4 3.215 21.4
-#> 5  3.440 19.03301          NA 3.440  18.7 3.440 18.7
-#> 6  3.460 18.94731          NA 3.460  18.1 3.460 18.1
-#> 7  3.570 18.47593          NA 3.570  14.3 3.570 14.3
-#> 8  3.190 20.10432          NA 3.190  24.4 3.190 24.4
-#> 9  3.150 20.27573          NA 3.150  22.8 3.150 22.8
-#> 10 3.440 19.03301          NA 3.440  19.2 3.440 19.2
+#>        x        y flipped_aes  xend yend
+#> 1  2.620 22.54689          NA 2.620 21.0
+#> 2  2.875 21.45416          NA 2.875 21.0
+#> 3  2.320 23.83246          NA 2.320 22.8
+#> 4  3.215 19.99719          NA 3.215 21.4
+#> 5  3.440 19.03301          NA 3.440 18.7
+#> 6  3.460 18.94731          NA 3.460 18.1
+#> 7  3.570 18.47593          NA 3.570 14.3
+#> 8  3.190 20.10432          NA 3.190 24.4
+#> 9  3.150 20.27573          NA 3.150 22.8
+#> 10 3.440 19.03301          NA 3.440 19.2
 
 mtcars %>% 
   slice(1:10) %>% 
   rename(x = wt, y = mpg) %>% 
   compute_group_smooth_sq_error(method = lm, formula = y ~ x)
-#>        x        y flipped_aes x_obs y_obs  xend yend     ymin  xmin ymax
-#> 1  2.620 22.54689          NA 2.620  21.0 2.620 21.0 22.54689 2.620 21.0
-#> 2  2.875 21.45416          NA 2.875  21.0 2.875 21.0 21.45416 2.875 21.0
-#> 3  2.320 23.83246          NA 2.320  22.8 2.320 22.8 23.83246 2.320 22.8
-#> 4  3.215 19.99719          NA 3.215  21.4 3.215 21.4 19.99719 3.215 21.4
-#> 5  3.440 19.03301          NA 3.440  18.7 3.440 18.7 19.03301 3.440 18.7
-#> 6  3.460 18.94731          NA 3.460  18.1 3.460 18.1 18.94731 3.460 18.1
-#> 7  3.570 18.47593          NA 3.570  14.3 3.570 14.3 18.47593 3.570 14.3
-#> 8  3.190 20.10432          NA 3.190  24.4 3.190 24.4 20.10432 3.190 24.4
-#> 9  3.150 20.27573          NA 3.150  22.8 3.150 22.8 20.27573 3.150 22.8
-#> 10 3.440 19.03301          NA 3.440  19.2 3.440 19.2 19.03301 3.440 19.2
-#>          xmax
-#> 1   1.0731060
-#> 2   2.4208382
-#> 3   1.2875387
-#> 4   4.6178145
-#> 5   3.1069900
-#> 6   2.6126945
-#> 7  -0.6059308
-#> 8   7.4856839
-#> 9   5.6742749
-#> 10  3.6069900
+#>        x        y flipped_aes  xend yend     ymin  xmin ymax       xmax
+#> 1  2.620 22.54689          NA 2.620 21.0 22.54689 2.620 21.0  1.0731060
+#> 2  2.875 21.45416          NA 2.875 21.0 21.45416 2.875 21.0  2.4208382
+#> 3  2.320 23.83246          NA 2.320 22.8 23.83246 2.320 22.8  1.2875387
+#> 4  3.215 19.99719          NA 3.215 21.4 19.99719 3.215 21.4  4.6178145
+#> 5  3.440 19.03301          NA 3.440 18.7 19.03301 3.440 18.7  3.1069900
+#> 6  3.460 18.94731          NA 3.460 18.1 18.94731 3.460 18.1  2.6126945
+#> 7  3.570 18.47593          NA 3.570 14.3 18.47593 3.570 14.3 -0.6059308
+#> 8  3.190 20.10432          NA 3.190 24.4 20.10432 3.190 24.4  7.4856839
+#> 9  3.150 20.27573          NA 3.150 22.8 20.27573 3.150 22.8  5.6742749
+#> 10 3.440 19.03301          NA 3.440 19.2 19.03301 3.440 19.2  3.6069900
 ```
 
 # Step 2. Pass to ggproto
@@ -307,9 +228,7 @@ mtcars %>%
 ``` r
 StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", 
                                   ggplot2::StatSmooth,
-                                  compute_group = compute_group_smooth_fit,
-                                  default_aes = ggplot2::aes(xend = after_stat(x_obs), 
-                                                             yend = after_stat(y_obs)))
+                                  compute_group = compute_group_smooth_fit)
 
 StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", 
                                       ggplot2::StatSmooth,
@@ -331,7 +250,7 @@ mtcars %>%
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
 # Step 3. Pass to stat\_\*/ geom\_ functions
 
@@ -367,7 +286,7 @@ mtcars %>%
   geom_smooth() + 
   geom_smooth_fit() + 
   geom_smooth_residuals() + 
-  geom_smooth_predict(xseq = 3, size = 8)
+  geom_smooth_fit(xseq = 2:3, size = 8)
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
@@ -377,7 +296,7 @@ mtcars %>%
 ![](README_files/figure-gfm/stat_fit-1.png)<!-- -->
 
 ``` r
-geom_squared_residuals <- function(...){
+geom_smooth_residuals_squared <- function(...){
   
   qlayer(geom = qproto_update(GeomRect, 
                               aes(fill = from_theme(accent), 
@@ -409,14 +328,14 @@ mtcars %>%
   geom_smooth() + 
   geom_smooth_fit() + 
   geom_smooth_residuals() +
-  geom_squared_residuals()
+  geom_smooth_residuals_squared()
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
 ``` r
 
@@ -428,7 +347,7 @@ last_plot() +
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-6-2.png)<!-- -->
 
 ``` r
 
@@ -440,7 +359,7 @@ last_plot() +
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-6-3.png)<!-- -->
 
 # And with lm
 
@@ -452,14 +371,14 @@ mtcars %>%
   geom_smooth(alpha = .2, se = FALSE, method = lm) + 
   geom_smooth_fit(method = lm) + # wrap as geom_smooth_fit()
   geom_smooth_residuals(method = lm) + 
-  geom_smooth_predict(xseq = 0, method = lm)
+  geom_smooth_fit(xseq = 0, method = lm)
 #> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
 # Contrast to an empty model…
 
@@ -473,11 +392,11 @@ mtcars %>%
   geom_smooth(method = lm, formula = y ~ 1) + 
   geom_smooth_fit(method = lm, formula = y ~ 1) + # wrap as geom_smooth_fit()
   geom_smooth_residuals(method = lm, formula = y ~ 1) + 
-  geom_squared_residuals(method = lm, formula = y ~ 1) + 
+  geom_smooth_residuals_squared(method = lm, formula = y ~ 1) + 
   coord_equal()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 geom_smooth_step <- function(method = NULL, formula = y ~ x,
@@ -504,7 +423,7 @@ mtcars |>
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
 
 # Via @friendly [ggplot2 extenders ggsprings discussion](https://github.com/ggplot2-extenders/ggplot-extension-club/discussions/83) and [springs extension case study](https://ggplot2-book.org/ext-springs.html)
 
@@ -575,14 +494,19 @@ GeomSmoothSpring <- ggproto("GeomSmoothSpring", Geom,
     
     # Transform the input data to specify the spring paths
     cols_to_keep <- setdiff(names(data), c("x", "y", "xend", "yend"))
+    
+    data$diameter <- data$diameter %||%  (.025 * abs(min(data$x)-max(data$x)))
+    data$springlength <- sqrt((data$x-data$xend)^2 + (data$y-data$yend)^2)
+    data$tension <- data$tension %||% (1 * data$springlength)
+    
     springs <- lapply(seq_len(nrow(data)), function(i) {
       spring_path <- create_spring(
         data$x[i], 
         data$y[i], 
         data$xend[i], 
         data$yend[i], 
-        diameter = .025 * abs(min(data$x)-max(data$x)), 
-        tension = 1 * abs(data$y[i]-data$yend[i]), 
+        data$diameter[i], 
+        data$tension[i], 
         n
       )
       cbind(spring_path, unclass(data[i, cols_to_keep]))
@@ -610,6 +534,7 @@ GeomSmoothSpring <- ggproto("GeomSmoothSpring", Geom,
     linetype = 1L, 
     alpha = NA
   )
+  
 )
 
 
@@ -624,7 +549,7 @@ anscombe |>
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
 
 ``` r
 
@@ -634,17 +559,28 @@ last_plot() +
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-2.png)<!-- -->
 
 ``` r
 
 last_plot() + 
-  aes(x = x3, y = y3)
+  aes(tension = 1)
 #> `geom_smooth()` using formula = 'y ~ x'
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-3.png)<!-- -->
+
+``` r
+
+last_plot() + 
+  aes(x = x3, y = y3) + 
+  aes(tension = NULL)
+#> `geom_smooth()` using formula = 'y ~ x'
+#> `geom_smooth()` using formula = 'y ~ x'
+```
+
+![](README_files/figure-gfm/unnamed-chunk-10-4.png)<!-- -->
 
 ``` r
 
@@ -654,7 +590,29 @@ last_plot() +
 #> `geom_smooth()` using formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-11-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-10-5.png)<!-- -->
+
+``` r
+
+
+anscombe |> 
+  ggplot() + 
+  aes(x = x2, y = y2) + 
+  geom_point() + 
+  geom_smooth(method = lm, formula = y ~ 1) +
+  stat_smooth_fit(geom = GeomSmoothSpring, method = lm, formula = y ~ 1) + 
+  ggchalkboard:::theme_blackboard()
+```
+
+![](README_files/figure-gfm/unnamed-chunk-10-6.png)<!-- -->
+
+``` r
+
+last_plot() + 
+  aes(tension = 1)
+```
+
+![](README_files/figure-gfm/unnamed-chunk-10-7.png)<!-- -->
 
 # Part 2. Packaging and documentation 🚧 ✅
 
@@ -666,30 +624,28 @@ last_plot() +
 
 ``` r
 knitr::knit_code$get() |> names()
-#>  [1] "unnamed-chunk-1"               "geom_smooth_predict"          
-#>  [3] "unnamed-chunk-2"               "unnamed-chunk-3"              
-#>  [5] "compute_group_smooth_fit"      "unnamed-chunk-4"              
-#>  [7] "compute_group_smooth_sq_error" "unnamed-chunk-5"              
-#>  [9] "ggproto_objects"               "unnamed-chunk-6"              
-#> [11] "stat_fit"                      "stat_errorsq"                 
-#> [13] "unnamed-chunk-7"               "unnamed-chunk-8"              
-#> [15] "unnamed-chunk-9"               "geom_smooth_step"             
-#> [17] "unnamed-chunk-10"              "unnamed-chunk-11"             
-#> [19] "unnamed-chunk-12"              "unnamed-chunk-13"             
-#> [21] "unnamed-chunk-14"              "unnamed-chunk-15"             
-#> [23] "stat-smooth"                   "unnamed-chunk-16"             
-#> [25] "unnamed-chunk-17"
+#>  [1] "unnamed-chunk-1"               "unnamed-chunk-2"              
+#>  [3] "compute_group_smooth_fit"      "unnamed-chunk-3"              
+#>  [5] "compute_group_smooth_sq_error" "unnamed-chunk-4"              
+#>  [7] "ggproto_objects"               "unnamed-chunk-5"              
+#>  [9] "stat_fit"                      "stat_errorsq"                 
+#> [11] "unnamed-chunk-6"               "unnamed-chunk-7"              
+#> [13] "unnamed-chunk-8"               "geom_smooth_step"             
+#> [15] "unnamed-chunk-9"               "unnamed-chunk-10"             
+#> [17] "unnamed-chunk-11"              "unnamed-chunk-12"             
+#> [19] "unnamed-chunk-13"              "unnamed-chunk-14"             
+#> [21] "stat-smooth"                   "unnamed-chunk-15"             
+#> [23] "unnamed-chunk-16"
 ```
 
 ``` r
-knitrExtra::chunk_to_dir(c("geom_smooth_predict",
+knitrExtra::chunk_to_dir(c(
                          "geom_smooth_step",
                          "compute_group_smooth_fit", 
                          "compute_group_smooth_sq_error",
                          "ggproto_objects",
                          "stat_fit", 
                          "stat_errorsq"))
-#> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
 #> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
 #> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
 #> It seems you are currently knitting a Rmd/Qmd file. The parsing of the file will be done in a new R session.
@@ -761,7 +717,7 @@ mtcars %>%
 #> `geom_smooth()` using method = 'loess' and formula = 'y ~ x'
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 Specify xseq… Almost surely new to you (and probably more interesting to
 stats instructors): predicting at observed values of x..
@@ -784,4 +740,4 @@ mtcars %>%
               yend = mtcars$mpg)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->

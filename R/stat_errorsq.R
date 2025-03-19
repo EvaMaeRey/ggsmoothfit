@@ -1,4 +1,4 @@
-geom_squared_residuals <- function(...){
+geom_smooth_residuals_squared <- function(...){
   
   qlayer(geom = qproto_update(GeomRect, 
                               aes(fill = from_theme(accent), 

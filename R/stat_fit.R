@@ -29,5 +29,5 @@ mtcars %>%
   geom_smooth() + 
   geom_smooth_fit() + 
   geom_smooth_residuals() + 
-  geom_smooth_predict(xseq = 3, size = 8)
+  geom_smooth_fit(xseq = 2:3, size = 8)
 
