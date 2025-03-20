@@ -8,7 +8,7 @@
   compute_group_smooth_fit](#step-1-create-compute_group_smooth_fit)
 - [Step 1.1 test compute group](#step-11-test-compute-group)
 - [Step 2. Pass to ggproto](#step-2-pass-to-ggproto)
-- [Test Stat](#test-stat)
+- [Try Out Stat](#try-out-stat)
 - [Step 3. Pass to stat\_\*/ geom\_
   functions](#step-3-pass-to-stat_-geom_-functions)
 - [And with lm](#and-with-lm)
@@ -228,14 +228,16 @@ mtcars %>%
 ``` r
 StatSmoothFit <- ggplot2::ggproto("StatSmoothFit", 
                                   ggplot2::StatSmooth,
-                                  compute_group = compute_group_smooth_fit)
+                                  compute_group = compute_group_smooth_fit,
+                                  required_aes = c("x", "y"))
 
 StatSmoothErrorSq <- ggplot2::ggproto("StatSmoothErrorSq", 
                                       ggplot2::StatSmooth,
-                                      compute_group = compute_group_smooth_sq_error)
+                                      compute_group = compute_group_smooth_sq_error,
+                                      required_aes = c("x", "y"))
 ```
 
-# Test Stat
+# Try Out Stat
 
 ``` r
 mtcars %>% 
